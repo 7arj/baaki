@@ -1,0 +1,25 @@
+[project]
+name = "baaki"
+version = "0.1.0"
+description = "Add your description here"
+readme = "README.md"
+requires-python = ">=3.12"
+dependencies = [
+    "anthropic>=1.2.0",
+    "fastapi>=0.141.1",
+    "razorpay>=2.0.1",
+    "rich>=15.0.0",
+    "uvicorn[standard]>=0.52.4",
+]
+
+[dependency-groups]
+dev = [
+    "pytest>=9.1.1",
+]
+
+[tool.pytest.ini_options]
+pythonpath = ["."]
+testpaths = ["tests"]
+
+[project.scripts]
+baaki = "baaki.__main__:main"

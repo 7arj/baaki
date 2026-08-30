@@ -1,0 +1,176 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Baaki — receivables recovery</title>
+<style>
+  :root {
+    color-scheme: light;
+    --page: #f9f9f7; --surface: #fcfcfb; --ink: #0b0b0b; --ink-2: #52514e; --muted: #898781;
+    --grid: #e1e0d9; --border: rgba(11,11,11,0.10);
+    --s1: #2a78d6; --s1-soft: #cde2fb;
+    --good: #0ca30c; --good-text: #006300; --warn: #fab219; --serious: #ec835a; --critical: #d03b3b;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      color-scheme: dark;
+      --page: #0d0d0d; --surface: #1a1a19; --ink: #ffffff; --ink-2: #c3c2b7; --muted: #898781;
+      --grid: #2c2c2a; --border: rgba(255,255,255,0.10);
+      --s1: #3987e5; --s1-soft: #184f95; --good-text: #0ca30c;
+    }
+  }
+  * { box-sizing: border-box; }
+  body { margin: 0; background: var(--page); color: var(--ink); font: 14px/1.45 system-ui, -apple-system, "Segoe UI", sans-serif; }
+  header { display: flex; align-items: baseline; gap: 16px; padding: 20px 28px 8px; }
+  header h1 { font-size: 20px; margin: 0; }
+  header .sub { color: var(--ink-2); }
+  header select { margin-left: auto; }
+  main { padding: 8px 28px 40px; display: grid; gap: 20px; }
+  .tiles { display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 12px; }
+  .tile { background: var(--surface); border: 1px solid var(--border); border-radius: 10px; padding: 14px 16px; }
+  .tile .label { color: var(--ink-2); font-size: 12px; }
+  .tile .value { font-size: 26px; font-weight: 600; margin-top: 2px; }
+  .tile .delta { font-size: 12px; color: var(--ink-2); margin-top: 2px; }
+  .tile .delta.up { color: var(--good-text); }
+  .card { background: var(--surface); border: 1px solid var(--border); border-radius: 10px; padding: 16px 18px; }
+  .card h2 { font-size: 14px; margin: 0 0 10px; }
+  .row { display: grid; grid-template-columns: 1.1fr 1fr; gap: 20px; }
+  /* bar chart: one measure, three strategies -> one hue, direct labels, no legend */
+  .bars { display: grid; gap: 10px; }
+  .bar { display: grid; grid-template-columns: 150px 1fr 120px; align-items: center; gap: 10px; }
+  .bar .name { color: var(--ink-2); }
+  .bar .track { position: relative; height: 18px; background: transparent; border-bottom: 1px solid var(--grid); }
+  .bar .fill { position: absolute; left: 0; top: 0; height: 100%; background: var(--s1); border-radius: 0 4px 4px 0; }
+  .bar .fill.muted { background: var(--s1-soft); }
+  .bar .val { text-align: right; font-variant-numeric: tabular-nums; }
+  table { width: 100%; border-collapse: collapse; font-variant-numeric: tabular-nums; }
+  th, td { text-align: left; padding: 6px 8px; border-bottom: 1px solid var(--grid); vertical-align: top; }
+  th { color: var(--muted); font-weight: 500; font-size: 12px; }
+  td.num, th.num { text-align: right; }
+  tr.sel td { background: var(--s1-soft); }
+  tbody tr { cursor: pointer; }
+  .status { display: inline-flex; align-items: center; gap: 6px; }
+  .dot { width: 8px; height: 8px; border-radius: 50%; display: inline-block; }
+  .st-paid .dot { background: var(--good); } .st-open .dot, .st-partially_paid .dot { background: var(--s1); }
+  .st-escalated .dot { background: var(--serious); } .st-stopped .dot { background: var(--critical); } .st-disputed .dot { background: var(--warn); }
+  .filters { display: flex; gap: 8px; margin-bottom: 10px; flex-wrap: wrap; }
+  .filters button { border: 1px solid var(--border); background: transparent; color: var(--ink); border-radius: 999px; padding: 3px 10px; cursor: pointer; }
+  .filters button.on { background: var(--s1); color: #fff; border-color: var(--s1); }
+  .timeline { display: grid; gap: 6px; max-height: 420px; overflow: auto; }
+  .ev { display: grid; grid-template-columns: 52px 76px 1fr; gap: 8px; padding: 6px 0; border-bottom: 1px solid var(--grid); }
+  .ev .d { color: var(--muted); } .ev .k { color: var(--ink-2); font-size: 12px; }
+  .ev.outbound .k { color: var(--s1); } .ev.payment .k { color: var(--good-text); } .ev.inbound .k { color: var(--serious); }
+  .audit { font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: 12px; max-height: 360px; overflow: auto; white-space: pre-wrap; color: var(--ink-2); }
+  .exc li { margin: 4px 0; }
+  .risk td, .risk th { padding: 4px 8px; }
+  code { background: var(--page); padding: 1px 5px; border-radius: 4px; }
+  .empty { color: var(--muted); }
+</style>
+</head>
+<body>
+<header>
+  <h1>Baaki</h1>
+  <span class="sub">bounded, auditable receivables recovery · <span id="meta"></span></span>
+  <select id="brain" title="decision brain"></select>
+</header>
+<main>
+  <section class="tiles" id="tiles"></section>
+
+  <section class="row">
+    <div class="card">
+      <h2>Recovered over the horizon — same ledger, same debtors</h2>
+      <div class="bars" id="bars"></div>
+    </div>
+    <div class="card">
+      <h2>Risk model on held-out debtors</h2>
+      <div id="risk"></div>
+    </div>
+  </section>
+
+  <section class="row">
+    <div class="card">
+      <h2>Invoices</h2>
+      <div class="filters" id="filters"></div>
+      <div style="max-height: 520px; overflow: auto;">
+        <table id="inv"><thead><tr><th>invoice</th><th>debtor</th><th class="num">outstanding</th><th>status</th><th class="num">risk</th><th class="num">contacts</th></tr></thead><tbody></tbody></table>
+      </div>
+    </div>
+    <div class="card">
+      <h2 id="detail-title">Select an invoice</h2>
+      <div id="detail" class="empty">Timeline, decisions and the audit trail for the selected invoice appear here.</div>
+    </div>
+  </section>
+
+  <section class="card">
+    <h2>Exception list — needs a human</h2>
+    <ul class="exc" id="exc"></ul>
+  </section>
+</main>
+<script>
+const $ = s => document.querySelector(s);
+const inr = p => { const s = Math.round(p/100).toString(); const [h,t]=[s.slice(0,-3), s.slice(-3)]; return '₹' + (h ? h.replace(/\B(?=(\d{2})+(?!\d))/g, ',') + ',' : '') + t; };
+let S, RUN, KEY, filter = 'all', selected = null;
+
+async function load(brain) {
+  S = await (await fetch('/api/summary' + (brain ? '?brain=' + brain : ''))).json();
+  KEY = 'agent_' + S.brain;
+  RUN = await (await fetch('/api/run/' + KEY)).json();
+  const sel = $('#brain'); sel.innerHTML = S.available_brains.map(b => `<option ${b===S.brain?'selected':''} value="${b}">${b} brain</option>`).join('');
+  render();
+}
+$('#brain').addEventListener('change', e => load(e.target.value));
+
+function render() {
+  const a = S.runs.agent, n = S.runs.naive, z = S.runs.none;
+  $('#meta').textContent = `${a.invoices} invoices · ${a.debtors} debtors · ${a.total_receivable} receivable · ${a.horizon_days}-day horizon`;
+  const tiles = [
+    ['Recovered', a.recovered, `+${inr(a.recovered_paise - n.recovered_paise)} vs naive reminders`, 'up'],
+    ['Recovery rate', a.recovery_rate_pct + '%', `naive ${n.recovery_rate_pct}% · do-nothing ${z.recovery_rate_pct}%`],
+    ['Contacts per ₹1L', a.contacts_per_lakh_recovered, `naive ${n.contacts_per_lakh_recovered} — ${a.contacts_sent} messages total`],
+    ['Compliance violations', a.policy_violations_unenforced, `naive baseline: ${n.policy_violations_unenforced}`],
+    ['Blocked by policy', a.policy_denials, 'out-of-policy proposals stopped at the gate'],
+    ['Needs a human', a.exceptions.length, `${a.invoices_by_status.escalated||0} escalated · ${a.invoices_by_status.stopped||0} stopped`],
+  ];
+  if (a.llm) tiles.push(['LLM fallbacks', a.llm.fallbacks, `${a.llm.calls} calls to ${a.llm.model}`]);
+  $('#tiles').innerHTML = tiles.map(([l,v,d,c]) => `<div class="tile"><div class="label">${l}</div><div class="value">${v}</div><div class="delta ${c||''}">${d}</div></div>`).join('');
+
+  const max = a.total_receivable_paise;
+  const rows = [['Baaki agent', a.recovered_paise, ''], ['Naive reminders', n.recovered_paise, 'muted'], ['Do nothing', z.recovered_paise, 'muted']];
+  $('#bars').innerHTML = rows.map(([k,v,c]) => `<div class="bar"><div class="name">${k}</div><div class="track" title="${inr(v)} of ${inr(max)}"><div class="fill ${c}" style="width:${(100*v/max).toFixed(1)}%"></div></div><div class="val">${inr(v)} · ${(100*v/max).toFixed(0)}%</div></div>`).join('')
+    + `<div class="bar"><div class="name" style="color:var(--muted)">of receivable</div><div></div><div class="val" style="color:var(--muted)">${inr(max)}</div></div>`;
+
+  const r = S.risk_model, h = r.holdout, h7 = r['holdout_at_0.7'];
+  $('#risk').innerHTML = `<p style="margin:0 0 8px;color:var(--ink-2)">Label: ${r.label}. ${r.split}. Base rate ${r.base_rate_holdout}.</p>
+    <table class="risk"><thead><tr><th>threshold</th><th class="num">precision</th><th class="num">recall</th><th class="num">F1</th><th>TP/FP/FN/TN</th></tr></thead><tbody>
+    ${[h,h7].map(x => `<tr><td>${x.threshold}</td><td class="num">${x.precision}</td><td class="num">${x.recall}</td><td class="num">${x.f1}</td><td>${x.tp}/${x.fp}/${x.fn}/${x.tn}</td></tr>`).join('')}
+    </tbody></table><p style="color:var(--muted);font-size:12px;margin:8px 0 0">Used only to prioritise which invoice the agent works first and whether to allow partial payment on the first link.</p>`;
+
+  const statuses = ['all', ...Object.keys(a.invoices_by_status)];
+  $('#filters').innerHTML = statuses.map(s => `<button class="${s===filter?'on':''}" data-s="${s}">${s} ${s==='all'?a.invoices:a.invoices_by_status[s]}</button>`).join('');
+  document.querySelectorAll('#filters button').forEach(b => b.onclick = () => { filter = b.dataset.s; render(); });
+
+  const list = RUN.invoices.filter(i => filter==='all' || i.status===filter).sort((x,y) => y.outstanding_paise - x.outstanding_paise);
+  $('#inv tbody').innerHTML = list.map(i => `<tr data-id="${i.id}" class="${selected===i.id?'sel':''}"><td>${i.id}</td><td>${i.debtor}</td><td class="num">${inr(i.outstanding_paise)}</td><td><span class="status st-${i.status}"><span class="dot"></span>${i.status}</span></td><td class="num">${i.risk_score ?? '–'}</td><td class="num">${i.contact_count}</td></tr>`).join('');
+  document.querySelectorAll('#inv tbody tr').forEach(tr => tr.onclick = () => select(tr.dataset.id));
+
+  $('#exc').innerHTML = a.exceptions.map(e => `<li><code>${e.invoice}</code> ${e.debtor} — <b>${e.outstanding}</b> — ${e.status}: ${e.reason}</li>`).join('') || '<li class="empty">none</li>';
+}
+
+async function select(id) {
+  selected = id; render();
+  const i = RUN.invoices.find(x => x.id===id);
+  const audit = await (await fetch(`/api/audit/${KEY}?invoice=${id}`)).json();
+  $('#detail-title').textContent = `${i.id} · ${i.debtor} · ${i.description}`;
+  const tl = i.timeline.map(e => `<div class="ev ${e.kind}"><span class="d">day ${e.day}</span><span class="k">${e.kind}</span><span>${e.summary}</span></div>`).join('');
+  const au = audit.filter(e => ['decision','policy_check','razorpay_call','brain_fallback','escalation','stopped','payment_received','intent_classified'].includes(e.event))
+    .map(e => { const {seq,ts,prev,hash,invoice,...rest} = e; return `#${seq} ${JSON.stringify(rest)}`; }).join('\n');
+  $('#detail').className = '';
+  $('#detail').innerHTML = `<p style="margin:0 0 8px;color:var(--ink-2)">${i.amount} invoiced · ${i.outstanding} outstanding · ${i.days_overdue}d overdue · risk ${i.risk_score ?? '–'}${i.payment_link_url ? ' · <a href="'+i.payment_link_url+'">link</a>' : ''}</p>
+    <div class="timeline">${tl}</div>
+    <h2 style="margin-top:14px">Audit trail (${audit.length} entries, hash-chained)</h2><div class="audit">${au}</div>`;
+}
+load();
+</script>
+</body>
+</html>

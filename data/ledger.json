@@ -1,0 +1,1447 @@
+{
+  "note": "archetype is HIDDEN ground truth for the simulator; the agent never receives it.",
+  "debtors": [
+    {
+      "id": "cust_001",
+      "name": "Joshi Enterprises",
+      "email": "accounts@joshienterprises.in",
+      "contact": "+918662738140",
+      "city": "Surat",
+      "prior_invoices": 2,
+      "prior_late_count": 1,
+      "avg_days_late": 14.8,
+      "prior_partial_payments": 1,
+      "archetype": "forgetful"
+    },
+    {
+      "id": "cust_002",
+      "name": "Mehta Foods",
+      "email": "accounts@mehtafoods.in",
+      "contact": "+918891086748",
+      "city": "Rajkot",
+      "prior_invoices": 5,
+      "prior_late_count": 4,
+      "avg_days_late": 20.3,
+      "prior_partial_payments": 0,
+      "archetype": "forgetful"
+    },
+    {
+      "id": "cust_003",
+      "name": "Kavya Agro",
+      "email": "accounts@kavyaagro.in",
+      "contact": "+917592223507",
+      "city": "Nagpur",
+      "prior_invoices": 4,
+      "prior_late_count": 0,
+      "avg_days_late": 0.0,
+      "prior_partial_payments": 0,
+      "archetype": "prompt"
+    },
+    {
+      "id": "cust_004",
+      "name": "Mishra Ceramics",
+      "email": "accounts@mishraceramics.in",
+      "contact": "+919229579693",
+      "city": "Rajkot",
+      "prior_invoices": 3,
+      "prior_late_count": 0,
+      "avg_days_late": 0.0,
+      "prior_partial_payments": 0,
+      "archetype": "prompt"
+    },
+    {
+      "id": "cust_005",
+      "name": "Joshi Logistics",
+      "email": "accounts@joshilogistics.in",
+      "contact": "+917386877100",
+      "city": "Rajkot",
+      "prior_invoices": 9,
+      "prior_late_count": 8,
+      "avg_days_late": 26.3,
+      "prior_partial_payments": 0,
+      "archetype": "cash_strapped"
+    },
+    {
+      "id": "cust_006",
+      "name": "Patel Pharma Distributors",
+      "email": "accounts@patelpharmadistributors.in",
+      "contact": "+917306645381",
+      "city": "Kanpur",
+      "prior_invoices": 9,
+      "prior_late_count": 4,
+      "avg_days_late": 23.9,
+      "prior_partial_payments": 1,
+      "archetype": "forgetful"
+    },
+    {
+      "id": "cust_007",
+      "name": "Mehta Traders",
+      "email": "accounts@mehtatraders.in",
+      "contact": "+917550690074",
+      "city": "Ludhiana",
+      "prior_invoices": 6,
+      "prior_late_count": 1,
+      "avg_days_late": 6.6,
+      "prior_partial_payments": 0,
+      "archetype": "disputer"
+    },
+    {
+      "id": "cust_008",
+      "name": "Pillai Traders",
+      "email": "accounts@pillaitraders.in",
+      "contact": "+919684666429",
+      "city": "Kolkata",
+      "prior_invoices": 6,
+      "prior_late_count": 5,
+      "avg_days_late": 18.7,
+      "prior_partial_payments": 0,
+      "archetype": "forgetful"
+    },
+    {
+      "id": "cust_009",
+      "name": "Bose Electricals",
+      "email": "accounts@boseelectricals.in",
+      "contact": "+917923810536",
+      "city": "Coimbatore",
+      "prior_invoices": 7,
+      "prior_late_count": 4,
+      "avg_days_late": 21.5,
+      "prior_partial_payments": 0,
+      "archetype": "disputer"
+    },
+    {
+      "id": "cust_010",
+      "name": "Singh Prints",
+      "email": "accounts@singhprints.in",
+      "contact": "+918577893137",
+      "city": "Rajkot",
+      "prior_invoices": 11,
+      "prior_late_count": 2,
+      "avg_days_late": 15.5,
+      "prior_partial_payments": 0,
+      "archetype": "forgetful"
+    },
+    {
+      "id": "cust_011",
+      "name": "Mehta Agro",
+      "email": "accounts@mehtaagro.in",
+      "contact": "+918191490443",
+      "city": "Surat",
+      "prior_invoices": 3,
+      "prior_late_count": 3,
+      "avg_days_late": 10.2,
+      "prior_partial_payments": 0,
+      "archetype": "forgetful"
+    },
+    {
+      "id": "cust_012",
+      "name": "Mehta Garments",
+      "email": "accounts@mehtagarments.in",
+      "contact": "+917334854909",
+      "city": "Vadodara",
+      "prior_invoices": 8,
+      "prior_late_count": 5,
+      "avg_days_late": 17.3,
+      "prior_partial_payments": 1,
+      "archetype": "forgetful"
+    },
+    {
+      "id": "cust_013",
+      "name": "Nair Logistics",
+      "email": "accounts@nairlogistics.in",
+      "contact": "+919484279220",
+      "city": "Jaipur",
+      "prior_invoices": 4,
+      "prior_late_count": 3,
+      "avg_days_late": 31.3,
+      "prior_partial_payments": 0,
+      "archetype": "ghost"
+    },
+    {
+      "id": "cust_014",
+      "name": "Mehta Autoparts",
+      "email": "accounts@mehtaautoparts.in",
+      "contact": "+919424439719",
+      "city": "Indore",
+      "prior_invoices": 10,
+      "prior_late_count": 7,
+      "avg_days_late": 34.9,
+      "prior_partial_payments": 0,
+      "archetype": "ghost"
+    },
+    {
+      "id": "cust_015",
+      "name": "Chawla Logistics",
+      "email": "accounts@chawlalogistics.in",
+      "contact": "+917634589316",
+      "city": "Pune",
+      "prior_invoices": 2,
+      "prior_late_count": 0,
+      "avg_days_late": 0.0,
+      "prior_partial_payments": 0,
+      "archetype": "forgetful"
+    },
+    {
+      "id": "cust_016",
+      "name": "Verma Pharma Distributors",
+      "email": "accounts@vermapharmadistributors.in",
+      "contact": "+918571195587",
+      "city": "Pune",
+      "prior_invoices": 7,
+      "prior_late_count": 6,
+      "avg_days_late": 37.7,
+      "prior_partial_payments": 0,
+      "archetype": "ghost"
+    },
+    {
+      "id": "cust_017",
+      "name": "Iyer Hardware",
+      "email": "accounts@iyerhardware.in",
+      "contact": "+919642795964",
+      "city": "Coimbatore",
+      "prior_invoices": 13,
+      "prior_late_count": 6,
+      "avg_days_late": 10.2,
+      "prior_partial_payments": 0,
+      "archetype": "forgetful"
+    },
+    {
+      "id": "cust_018",
+      "name": "Desai Garments",
+      "email": "accounts@desaigarments.in",
+      "contact": "+919707137661",
+      "city": "Surat",
+      "prior_invoices": 9,
+      "prior_late_count": 7,
+      "avg_days_late": 21.4,
+      "prior_partial_payments": 1,
+      "archetype": "cash_strapped"
+    },
+    {
+      "id": "cust_019",
+      "name": "Nair Agro",
+      "email": "accounts@nairagro.in",
+      "contact": "+919170786460",
+      "city": "Kolkata",
+      "prior_invoices": 5,
+      "prior_late_count": 2,
+      "avg_days_late": 22.7,
+      "prior_partial_payments": 0,
+      "archetype": "forgetful"
+    },
+    {
+      "id": "cust_020",
+      "name": "Chawla Foods",
+      "email": "accounts@chawlafoods.in",
+      "contact": "+919235877941",
+      "city": "Tiruppur",
+      "prior_invoices": 10,
+      "prior_late_count": 9,
+      "avg_days_late": 13.9,
+      "prior_partial_payments": 1,
+      "archetype": "ghost"
+    },
+    {
+      "id": "cust_021",
+      "name": "Bose Logistics",
+      "email": "accounts@boselogistics.in",
+      "contact": "+918481683626",
+      "city": "Surat",
+      "prior_invoices": 3,
+      "prior_late_count": 2,
+      "avg_days_late": 6.9,
+      "prior_partial_payments": 1,
+      "archetype": "disputer"
+    },
+    {
+      "id": "cust_022",
+      "name": "Mehta Logistics",
+      "email": "accounts@mehtalogistics.in",
+      "contact": "+917663868658",
+      "city": "Coimbatore",
+      "prior_invoices": 10,
+      "prior_late_count": 3,
+      "avg_days_late": 26.6,
+      "prior_partial_payments": 0,
+      "archetype": "forgetful"
+    },
+    {
+      "id": "cust_023",
+      "name": "Singh Textiles",
+      "email": "accounts@singhtextiles.in",
+      "contact": "+917468543175",
+      "city": "Kochi",
+      "prior_invoices": 7,
+      "prior_late_count": 4,
+      "avg_days_late": 22.2,
+      "prior_partial_payments": 0,
+      "archetype": "forgetful"
+    },
+    {
+      "id": "cust_024",
+      "name": "Reddy Logistics",
+      "email": "accounts@reddylogistics.in",
+      "contact": "+918414077581",
+      "city": "Rajkot",
+      "prior_invoices": 3,
+      "prior_late_count": 1,
+      "avg_days_late": 24.7,
+      "prior_partial_payments": 0,
+      "archetype": "forgetful"
+    },
+    {
+      "id": "cust_025",
+      "name": "Joshi Foods",
+      "email": "accounts@joshifoods.in",
+      "contact": "+917210624791",
+      "city": "Kochi",
+      "prior_invoices": 7,
+      "prior_late_count": 0,
+      "avg_days_late": 0.0,
+      "prior_partial_payments": 0,
+      "archetype": "prompt"
+    },
+    {
+      "id": "cust_026",
+      "name": "Das Hardware",
+      "email": "accounts@dashardware.in",
+      "contact": "+917847463208",
+      "city": "Coimbatore",
+      "prior_invoices": 6,
+      "prior_late_count": 0,
+      "avg_days_late": 0.0,
+      "prior_partial_payments": 0,
+      "archetype": "prompt"
+    },
+    {
+      "id": "cust_027",
+      "name": "Bose Hardware",
+      "email": "accounts@bosehardware.in",
+      "contact": "+917218344662",
+      "city": "Kolkata",
+      "prior_invoices": 9,
+      "prior_late_count": 6,
+      "avg_days_late": 11.6,
+      "prior_partial_payments": 1,
+      "archetype": "cash_strapped"
+    },
+    {
+      "id": "cust_028",
+      "name": "Iyer Logistics",
+      "email": "accounts@iyerlogistics.in",
+      "contact": "+917674548005",
+      "city": "Kanpur",
+      "prior_invoices": 10,
+      "prior_late_count": 1,
+      "avg_days_late": 10.0,
+      "prior_partial_payments": 0,
+      "archetype": "prompt"
+    },
+    {
+      "id": "cust_029",
+      "name": "Chawla Ceramics",
+      "email": "accounts@chawlaceramics.in",
+      "contact": "+919157195210",
+      "city": "Rajkot",
+      "prior_invoices": 7,
+      "prior_late_count": 2,
+      "avg_days_late": 6.0,
+      "prior_partial_payments": 0,
+      "archetype": "prompt"
+    },
+    {
+      "id": "cust_030",
+      "name": "Pillai Prints",
+      "email": "accounts@pillaiprints.in",
+      "contact": "+919742627015",
+      "city": "Surat",
+      "prior_invoices": 8,
+      "prior_late_count": 6,
+      "avg_days_late": 40.5,
+      "prior_partial_payments": 0,
+      "archetype": "ghost"
+    },
+    {
+      "id": "cust_031",
+      "name": "Mehta Ceramics",
+      "email": "accounts@mehtaceramics.in",
+      "contact": "+917148270221",
+      "city": "Coimbatore",
+      "prior_invoices": 6,
+      "prior_late_count": 1,
+      "avg_days_late": 17.2,
+      "prior_partial_payments": 0,
+      "archetype": "disputer"
+    },
+    {
+      "id": "cust_032",
+      "name": "Patel Electricals",
+      "email": "accounts@patelelectricals.in",
+      "contact": "+918098860020",
+      "city": "Ludhiana",
+      "prior_invoices": 6,
+      "prior_late_count": 4,
+      "avg_days_late": 11.7,
+      "prior_partial_payments": 0,
+      "archetype": "forgetful"
+    },
+    {
+      "id": "cust_033",
+      "name": "Pillai Electricals",
+      "email": "accounts@pillaielectricals.in",
+      "contact": "+917073749275",
+      "city": "Jaipur",
+      "prior_invoices": 5,
+      "prior_late_count": 3,
+      "avg_days_late": 25.7,
+      "prior_partial_payments": 3,
+      "archetype": "cash_strapped"
+    },
+    {
+      "id": "cust_034",
+      "name": "Das Textiles",
+      "email": "accounts@dastextiles.in",
+      "contact": "+919404676262",
+      "city": "Coimbatore",
+      "prior_invoices": 10,
+      "prior_late_count": 5,
+      "avg_days_late": 13.3,
+      "prior_partial_payments": 3,
+      "archetype": "cash_strapped"
+    },
+    {
+      "id": "cust_035",
+      "name": "Chawla Pharma Distributors",
+      "email": "accounts@chawlapharmadistributors.in",
+      "contact": "+918603344575",
+      "city": "Surat",
+      "prior_invoices": 14,
+      "prior_late_count": 10,
+      "avg_days_late": 24.1,
+      "prior_partial_payments": 1,
+      "archetype": "cash_strapped"
+    },
+    {
+      "id": "cust_036",
+      "name": "Chawla Hardware",
+      "email": "accounts@chawlahardware.in",
+      "contact": "+919513216127",
+      "city": "Nagpur",
+      "prior_invoices": 12,
+      "prior_late_count": 7,
+      "avg_days_late": 34.7,
+      "prior_partial_payments": 2,
+      "archetype": "cash_strapped"
+    },
+    {
+      "id": "cust_037",
+      "name": "Banerjee Textiles",
+      "email": "accounts@banerjeetextiles.in",
+      "contact": "+919214174174",
+      "city": "Jaipur",
+      "prior_invoices": 7,
+      "prior_late_count": 6,
+      "avg_days_late": 28.0,
+      "prior_partial_payments": 1,
+      "archetype": "cash_strapped"
+    },
+    {
+      "id": "cust_038",
+      "name": "Chawla Electricals",
+      "email": "accounts@chawlaelectricals.in",
+      "contact": "+918267637503",
+      "city": "Kochi",
+      "prior_invoices": 9,
+      "prior_late_count": 7,
+      "avg_days_late": 37.0,
+      "prior_partial_payments": 2,
+      "archetype": "cash_strapped"
+    },
+    {
+      "id": "cust_039",
+      "name": "Mishra Textiles",
+      "email": "accounts@mishratextiles.in",
+      "contact": "+918611199337",
+      "city": "Kanpur",
+      "prior_invoices": 10,
+      "prior_late_count": 0,
+      "avg_days_late": 0.0,
+      "prior_partial_payments": 0,
+      "archetype": "prompt"
+    },
+    {
+      "id": "cust_040",
+      "name": "Rao Electricals",
+      "email": "accounts@raoelectricals.in",
+      "contact": "+917949743189",
+      "city": "Pune",
+      "prior_invoices": 8,
+      "prior_late_count": 4,
+      "avg_days_late": 19.3,
+      "prior_partial_payments": 0,
+      "archetype": "disputer"
+    }
+  ],
+  "invoices": [
+    {
+      "id": "inv_0001",
+      "debtor_id": "cust_005",
+      "amount_paise": 6039900,
+      "issue_day": -68,
+      "due_day": -38,
+      "description": "printed labels \u2014 PO 6909"
+    },
+    {
+      "id": "inv_0002",
+      "debtor_id": "cust_028",
+      "amount_paise": 3287400,
+      "issue_day": -34,
+      "due_day": -4,
+      "description": "packaging film \u2014 PO 2666"
+    },
+    {
+      "id": "inv_0003",
+      "debtor_id": "cust_004",
+      "amount_paise": 24029200,
+      "issue_day": -71,
+      "due_day": -41,
+      "description": "corrugated boxes \u2014 PO 5084"
+    },
+    {
+      "id": "inv_0004",
+      "debtor_id": "cust_018",
+      "amount_paise": 6052300,
+      "issue_day": -51,
+      "due_day": -21,
+      "description": "MS pipes \u2014 PO 7116"
+    },
+    {
+      "id": "inv_0005",
+      "debtor_id": "cust_028",
+      "amount_paise": 933100,
+      "issue_day": -71,
+      "due_day": -41,
+      "description": "dyes & chemicals \u2014 PO 9998"
+    },
+    {
+      "id": "inv_0006",
+      "debtor_id": "cust_014",
+      "amount_paise": 1205000,
+      "issue_day": -57,
+      "due_day": -27,
+      "description": "office fit-out \u2014 PO 3270"
+    },
+    {
+      "id": "inv_0007",
+      "debtor_id": "cust_019",
+      "amount_paise": 8505000,
+      "issue_day": -66,
+      "due_day": -36,
+      "description": "corrugated boxes \u2014 PO 3797"
+    },
+    {
+      "id": "inv_0008",
+      "debtor_id": "cust_031",
+      "amount_paise": 6035100,
+      "issue_day": -49,
+      "due_day": -19,
+      "description": "packaging film \u2014 PO 5190"
+    },
+    {
+      "id": "inv_0009",
+      "debtor_id": "cust_017",
+      "amount_paise": 6067100,
+      "issue_day": -46,
+      "due_day": -16,
+      "description": "packaging film \u2014 PO 8916"
+    },
+    {
+      "id": "inv_0010",
+      "debtor_id": "cust_036",
+      "amount_paise": 24040300,
+      "issue_day": -38,
+      "due_day": -8,
+      "description": "corrugated boxes \u2014 PO 3648"
+    },
+    {
+      "id": "inv_0011",
+      "debtor_id": "cust_005",
+      "amount_paise": 2451200,
+      "issue_day": -62,
+      "due_day": -32,
+      "description": "catering services \u2014 PO 4604"
+    },
+    {
+      "id": "inv_0012",
+      "debtor_id": "cust_029",
+      "amount_paise": 4577700,
+      "issue_day": -59,
+      "due_day": -29,
+      "description": "dyes & chemicals \u2014 PO 3287"
+    },
+    {
+      "id": "inv_0013",
+      "debtor_id": "cust_036",
+      "amount_paise": 2424900,
+      "issue_day": -36,
+      "due_day": -6,
+      "description": "corrugated boxes \u2014 PO 6602"
+    },
+    {
+      "id": "inv_0014",
+      "debtor_id": "cust_036",
+      "amount_paise": 1232600,
+      "issue_day": -46,
+      "due_day": -16,
+      "description": "spare parts \u2014 PO 5232"
+    },
+    {
+      "id": "inv_0015",
+      "debtor_id": "cust_037",
+      "amount_paise": 2490800,
+      "issue_day": -32,
+      "due_day": -2,
+      "description": "fasteners \u2014 PO 7763"
+    },
+    {
+      "id": "inv_0016",
+      "debtor_id": "cust_025",
+      "amount_paise": 6076300,
+      "issue_day": -64,
+      "due_day": -34,
+      "description": "MS pipes \u2014 PO 7174"
+    },
+    {
+      "id": "inv_0017",
+      "debtor_id": "cust_018",
+      "amount_paise": 4577000,
+      "issue_day": -34,
+      "due_day": -4,
+      "description": "office fit-out \u2014 PO 5546"
+    },
+    {
+      "id": "inv_0018",
+      "debtor_id": "cust_037",
+      "amount_paise": 4512800,
+      "issue_day": -74,
+      "due_day": -44,
+      "description": "catering services \u2014 PO 9670"
+    },
+    {
+      "id": "inv_0019",
+      "debtor_id": "cust_014",
+      "amount_paise": 1227700,
+      "issue_day": -46,
+      "due_day": -16,
+      "description": "dyes & chemicals \u2014 PO 7549"
+    },
+    {
+      "id": "inv_0020",
+      "debtor_id": "cust_029",
+      "amount_paise": 6097600,
+      "issue_day": -50,
+      "due_day": -20,
+      "description": "cotton yarn lot \u2014 PO 3084"
+    },
+    {
+      "id": "inv_0021",
+      "debtor_id": "cust_003",
+      "amount_paise": 6072600,
+      "issue_day": -61,
+      "due_day": -31,
+      "description": "CNC job work \u2014 PO 9025"
+    },
+    {
+      "id": "inv_0022",
+      "debtor_id": "cust_001",
+      "amount_paise": 1240000,
+      "issue_day": -64,
+      "due_day": -34,
+      "description": "office fit-out \u2014 PO 8355"
+    },
+    {
+      "id": "inv_0023",
+      "debtor_id": "cust_016",
+      "amount_paise": 1222900,
+      "issue_day": -40,
+      "due_day": -10,
+      "description": "corrugated boxes \u2014 PO 9558"
+    },
+    {
+      "id": "inv_0024",
+      "debtor_id": "cust_007",
+      "amount_paise": 24086600,
+      "issue_day": -60,
+      "due_day": -30,
+      "description": "printed labels \u2014 PO 1647"
+    },
+    {
+      "id": "inv_0025",
+      "debtor_id": "cust_001",
+      "amount_paise": 1873800,
+      "issue_day": -67,
+      "due_day": -37,
+      "description": "cotton yarn lot \u2014 PO 5977"
+    },
+    {
+      "id": "inv_0026",
+      "debtor_id": "cust_009",
+      "amount_paise": 24025700,
+      "issue_day": -64,
+      "due_day": -34,
+      "description": "pallets \u2014 PO 8166"
+    },
+    {
+      "id": "inv_0027",
+      "debtor_id": "cust_008",
+      "amount_paise": 1207200,
+      "issue_day": -50,
+      "due_day": -20,
+      "description": "catering services \u2014 PO 4140"
+    },
+    {
+      "id": "inv_0028",
+      "debtor_id": "cust_025",
+      "amount_paise": 3222800,
+      "issue_day": -69,
+      "due_day": -39,
+      "description": "cotton yarn lot \u2014 PO 1171"
+    },
+    {
+      "id": "inv_0029",
+      "debtor_id": "cust_035",
+      "amount_paise": 3247100,
+      "issue_day": -48,
+      "due_day": -18,
+      "description": "spare parts \u2014 PO 4970"
+    },
+    {
+      "id": "inv_0030",
+      "debtor_id": "cust_031",
+      "amount_paise": 12024000,
+      "issue_day": -66,
+      "due_day": -36,
+      "description": "MS pipes \u2014 PO 1479"
+    },
+    {
+      "id": "inv_0031",
+      "debtor_id": "cust_027",
+      "amount_paise": 24031400,
+      "issue_day": -34,
+      "due_day": -4,
+      "description": "cotton yarn lot \u2014 PO 4180"
+    },
+    {
+      "id": "inv_0032",
+      "debtor_id": "cust_032",
+      "amount_paise": 24066200,
+      "issue_day": -57,
+      "due_day": -27,
+      "description": "printed labels \u2014 PO 5214"
+    },
+    {
+      "id": "inv_0033",
+      "debtor_id": "cust_015",
+      "amount_paise": 24043400,
+      "issue_day": -54,
+      "due_day": -24,
+      "description": "MS pipes \u2014 PO 9076"
+    },
+    {
+      "id": "inv_0034",
+      "debtor_id": "cust_003",
+      "amount_paise": 4573500,
+      "issue_day": -57,
+      "due_day": -27,
+      "description": "spare parts \u2014 PO 7493"
+    },
+    {
+      "id": "inv_0035",
+      "debtor_id": "cust_013",
+      "amount_paise": 931600,
+      "issue_day": -49,
+      "due_day": -19,
+      "description": "fasteners \u2014 PO 9271"
+    },
+    {
+      "id": "inv_0036",
+      "debtor_id": "cust_005",
+      "amount_paise": 2450700,
+      "issue_day": -43,
+      "due_day": -13,
+      "description": "packaging film \u2014 PO 4177"
+    },
+    {
+      "id": "inv_0037",
+      "debtor_id": "cust_015",
+      "amount_paise": 8522600,
+      "issue_day": -47,
+      "due_day": -17,
+      "description": "packaging film \u2014 PO 2785"
+    },
+    {
+      "id": "inv_0038",
+      "debtor_id": "cust_040",
+      "amount_paise": 8562400,
+      "issue_day": -42,
+      "due_day": -12,
+      "description": "MS pipes \u2014 PO 8947"
+    },
+    {
+      "id": "inv_0039",
+      "debtor_id": "cust_027",
+      "amount_paise": 24005700,
+      "issue_day": -69,
+      "due_day": -39,
+      "description": "corrugated boxes \u2014 PO 7446"
+    },
+    {
+      "id": "inv_0040",
+      "debtor_id": "cust_004",
+      "amount_paise": 2402400,
+      "issue_day": -69,
+      "due_day": -39,
+      "description": "corrugated boxes \u2014 PO 7805"
+    },
+    {
+      "id": "inv_0041",
+      "debtor_id": "cust_004",
+      "amount_paise": 868800,
+      "issue_day": -56,
+      "due_day": -26,
+      "description": "office fit-out \u2014 PO 6147"
+    },
+    {
+      "id": "inv_0042",
+      "debtor_id": "cust_008",
+      "amount_paise": 1295300,
+      "issue_day": -41,
+      "due_day": -11,
+      "description": "spare parts \u2014 PO 4124"
+    },
+    {
+      "id": "inv_0043",
+      "debtor_id": "cust_012",
+      "amount_paise": 24095800,
+      "issue_day": -64,
+      "due_day": -34,
+      "description": "fasteners \u2014 PO 8661"
+    },
+    {
+      "id": "inv_0044",
+      "debtor_id": "cust_003",
+      "amount_paise": 3268000,
+      "issue_day": -55,
+      "due_day": -25,
+      "description": "spare parts \u2014 PO 6434"
+    },
+    {
+      "id": "inv_0045",
+      "debtor_id": "cust_029",
+      "amount_paise": 1861100,
+      "issue_day": -31,
+      "due_day": -1,
+      "description": "printed labels \u2014 PO 5584"
+    },
+    {
+      "id": "inv_0046",
+      "debtor_id": "cust_006",
+      "amount_paise": 4543000,
+      "issue_day": -38,
+      "due_day": -8,
+      "description": "catering services \u2014 PO 4398"
+    },
+    {
+      "id": "inv_0047",
+      "debtor_id": "cust_025",
+      "amount_paise": 4578700,
+      "issue_day": -50,
+      "due_day": -20,
+      "description": "dyes & chemicals \u2014 PO 2437"
+    },
+    {
+      "id": "inv_0048",
+      "debtor_id": "cust_004",
+      "amount_paise": 8520000,
+      "issue_day": -54,
+      "due_day": -24,
+      "description": "catering services \u2014 PO 8312"
+    },
+    {
+      "id": "inv_0049",
+      "debtor_id": "cust_013",
+      "amount_paise": 4537200,
+      "issue_day": -61,
+      "due_day": -31,
+      "description": "cotton yarn lot \u2014 PO 7730"
+    },
+    {
+      "id": "inv_0050",
+      "debtor_id": "cust_016",
+      "amount_paise": 24078500,
+      "issue_day": -56,
+      "due_day": -26,
+      "description": "cotton yarn lot \u2014 PO 7153"
+    },
+    {
+      "id": "inv_0051",
+      "debtor_id": "cust_003",
+      "amount_paise": 8506400,
+      "issue_day": -34,
+      "due_day": -4,
+      "description": "packaging film \u2014 PO 4193"
+    },
+    {
+      "id": "inv_0052",
+      "debtor_id": "cust_005",
+      "amount_paise": 17534700,
+      "issue_day": -54,
+      "due_day": -24,
+      "description": "packaging film \u2014 PO 6488"
+    },
+    {
+      "id": "inv_0053",
+      "debtor_id": "cust_040",
+      "amount_paise": 876800,
+      "issue_day": -75,
+      "due_day": -45,
+      "description": "spare parts \u2014 PO 5515"
+    },
+    {
+      "id": "inv_0054",
+      "debtor_id": "cust_020",
+      "amount_paise": 923800,
+      "issue_day": -69,
+      "due_day": -39,
+      "description": "pallets \u2014 PO 2070"
+    },
+    {
+      "id": "inv_0055",
+      "debtor_id": "cust_002",
+      "amount_paise": 2410900,
+      "issue_day": -61,
+      "due_day": -31,
+      "description": "fasteners \u2014 PO 8630"
+    },
+    {
+      "id": "inv_0056",
+      "debtor_id": "cust_025",
+      "amount_paise": 3293500,
+      "issue_day": -58,
+      "due_day": -28,
+      "description": "office fit-out \u2014 PO 3174"
+    },
+    {
+      "id": "inv_0057",
+      "debtor_id": "cust_032",
+      "amount_paise": 1850800,
+      "issue_day": -50,
+      "due_day": -20,
+      "description": "fasteners \u2014 PO 3479"
+    },
+    {
+      "id": "inv_0058",
+      "debtor_id": "cust_039",
+      "amount_paise": 2433500,
+      "issue_day": -51,
+      "due_day": -21,
+      "description": "office fit-out \u2014 PO 6928"
+    },
+    {
+      "id": "inv_0059",
+      "debtor_id": "cust_039",
+      "amount_paise": 1252400,
+      "issue_day": -43,
+      "due_day": -13,
+      "description": "dyes & chemicals \u2014 PO 3620"
+    },
+    {
+      "id": "inv_0060",
+      "debtor_id": "cust_016",
+      "amount_paise": 6006600,
+      "issue_day": -72,
+      "due_day": -42,
+      "description": "cotton yarn lot \u2014 PO 8892"
+    },
+    {
+      "id": "inv_0061",
+      "debtor_id": "cust_036",
+      "amount_paise": 12033300,
+      "issue_day": -41,
+      "due_day": -11,
+      "description": "dyes & chemicals \u2014 PO 2723"
+    },
+    {
+      "id": "inv_0062",
+      "debtor_id": "cust_005",
+      "amount_paise": 3263900,
+      "issue_day": -36,
+      "due_day": -6,
+      "description": "MS pipes \u2014 PO 2579"
+    },
+    {
+      "id": "inv_0063",
+      "debtor_id": "cust_027",
+      "amount_paise": 8572600,
+      "issue_day": -59,
+      "due_day": -29,
+      "description": "corrugated boxes \u2014 PO 4837"
+    },
+    {
+      "id": "inv_0064",
+      "debtor_id": "cust_009",
+      "amount_paise": 6047100,
+      "issue_day": -70,
+      "due_day": -40,
+      "description": "pallets \u2014 PO 4849"
+    },
+    {
+      "id": "inv_0065",
+      "debtor_id": "cust_035",
+      "amount_paise": 24077700,
+      "issue_day": -38,
+      "due_day": -8,
+      "description": "packaging film \u2014 PO 5813"
+    },
+    {
+      "id": "inv_0066",
+      "debtor_id": "cust_018",
+      "amount_paise": 17527400,
+      "issue_day": -54,
+      "due_day": -24,
+      "description": "packaging film \u2014 PO 5265"
+    },
+    {
+      "id": "inv_0067",
+      "debtor_id": "cust_013",
+      "amount_paise": 8525300,
+      "issue_day": -42,
+      "due_day": -12,
+      "description": "MS pipes \u2014 PO 4858"
+    },
+    {
+      "id": "inv_0068",
+      "debtor_id": "cust_010",
+      "amount_paise": 3290500,
+      "issue_day": -68,
+      "due_day": -38,
+      "description": "MS pipes \u2014 PO 6346"
+    },
+    {
+      "id": "inv_0069",
+      "debtor_id": "cust_005",
+      "amount_paise": 6025700,
+      "issue_day": -46,
+      "due_day": -16,
+      "description": "catering services \u2014 PO 9623"
+    },
+    {
+      "id": "inv_0070",
+      "debtor_id": "cust_015",
+      "amount_paise": 24082700,
+      "issue_day": -37,
+      "due_day": -7,
+      "description": "pallets \u2014 PO 8600"
+    },
+    {
+      "id": "inv_0071",
+      "debtor_id": "cust_003",
+      "amount_paise": 1200400,
+      "issue_day": -61,
+      "due_day": -31,
+      "description": "MS pipes \u2014 PO 8344"
+    },
+    {
+      "id": "inv_0072",
+      "debtor_id": "cust_024",
+      "amount_paise": 939700,
+      "issue_day": -49,
+      "due_day": -19,
+      "description": "MS pipes \u2014 PO 2953"
+    },
+    {
+      "id": "inv_0073",
+      "debtor_id": "cust_004",
+      "amount_paise": 2461400,
+      "issue_day": -68,
+      "due_day": -38,
+      "description": "MS pipes \u2014 PO 2230"
+    },
+    {
+      "id": "inv_0074",
+      "debtor_id": "cust_024",
+      "amount_paise": 12088600,
+      "issue_day": -42,
+      "due_day": -12,
+      "description": "office fit-out \u2014 PO 5258"
+    },
+    {
+      "id": "inv_0075",
+      "debtor_id": "cust_001",
+      "amount_paise": 1265200,
+      "issue_day": -69,
+      "due_day": -39,
+      "description": "fasteners \u2014 PO 6729"
+    },
+    {
+      "id": "inv_0076",
+      "debtor_id": "cust_014",
+      "amount_paise": 887700,
+      "issue_day": -52,
+      "due_day": -22,
+      "description": "corrugated boxes \u2014 PO 1723"
+    },
+    {
+      "id": "inv_0077",
+      "debtor_id": "cust_014",
+      "amount_paise": 3203900,
+      "issue_day": -69,
+      "due_day": -39,
+      "description": "fasteners \u2014 PO 4333"
+    },
+    {
+      "id": "inv_0078",
+      "debtor_id": "cust_001",
+      "amount_paise": 4541800,
+      "issue_day": -74,
+      "due_day": -44,
+      "description": "spare parts \u2014 PO 4033"
+    },
+    {
+      "id": "inv_0079",
+      "debtor_id": "cust_040",
+      "amount_paise": 3207900,
+      "issue_day": -44,
+      "due_day": -14,
+      "description": "cotton yarn lot \u2014 PO 9120"
+    },
+    {
+      "id": "inv_0080",
+      "debtor_id": "cust_036",
+      "amount_paise": 8506400,
+      "issue_day": -57,
+      "due_day": -27,
+      "description": "printed labels \u2014 PO 7476"
+    },
+    {
+      "id": "inv_0081",
+      "debtor_id": "cust_036",
+      "amount_paise": 1915400,
+      "issue_day": -65,
+      "due_day": -35,
+      "description": "printed labels \u2014 PO 3681"
+    },
+    {
+      "id": "inv_0082",
+      "debtor_id": "cust_026",
+      "amount_paise": 3241900,
+      "issue_day": -49,
+      "due_day": -19,
+      "description": "pallets \u2014 PO 6039"
+    },
+    {
+      "id": "inv_0083",
+      "debtor_id": "cust_027",
+      "amount_paise": 881900,
+      "issue_day": -67,
+      "due_day": -37,
+      "description": "spare parts \u2014 PO 7784"
+    },
+    {
+      "id": "inv_0084",
+      "debtor_id": "cust_027",
+      "amount_paise": 938400,
+      "issue_day": -54,
+      "due_day": -24,
+      "description": "pallets \u2014 PO 4230"
+    },
+    {
+      "id": "inv_0085",
+      "debtor_id": "cust_026",
+      "amount_paise": 6020800,
+      "issue_day": -31,
+      "due_day": -1,
+      "description": "dyes & chemicals \u2014 PO 3565"
+    },
+    {
+      "id": "inv_0086",
+      "debtor_id": "cust_028",
+      "amount_paise": 1284000,
+      "issue_day": -36,
+      "due_day": -6,
+      "description": "dyes & chemicals \u2014 PO 6975"
+    },
+    {
+      "id": "inv_0087",
+      "debtor_id": "cust_030",
+      "amount_paise": 1863300,
+      "issue_day": -31,
+      "due_day": -1,
+      "description": "cotton yarn lot \u2014 PO 3334"
+    },
+    {
+      "id": "inv_0088",
+      "debtor_id": "cust_026",
+      "amount_paise": 1258600,
+      "issue_day": -70,
+      "due_day": -40,
+      "description": "spare parts \u2014 PO 9265"
+    },
+    {
+      "id": "inv_0089",
+      "debtor_id": "cust_011",
+      "amount_paise": 1885600,
+      "issue_day": -49,
+      "due_day": -19,
+      "description": "corrugated boxes \u2014 PO 9538"
+    },
+    {
+      "id": "inv_0090",
+      "debtor_id": "cust_011",
+      "amount_paise": 1211100,
+      "issue_day": -55,
+      "due_day": -25,
+      "description": "office fit-out \u2014 PO 4233"
+    },
+    {
+      "id": "inv_0091",
+      "debtor_id": "cust_020",
+      "amount_paise": 1935700,
+      "issue_day": -33,
+      "due_day": -3,
+      "description": "office fit-out \u2014 PO 6153"
+    },
+    {
+      "id": "inv_0092",
+      "debtor_id": "cust_004",
+      "amount_paise": 17594800,
+      "issue_day": -71,
+      "due_day": -41,
+      "description": "dyes & chemicals \u2014 PO 2413"
+    },
+    {
+      "id": "inv_0093",
+      "debtor_id": "cust_040",
+      "amount_paise": 1915500,
+      "issue_day": -45,
+      "due_day": -15,
+      "description": "CNC job work \u2014 PO 7627"
+    },
+    {
+      "id": "inv_0094",
+      "debtor_id": "cust_040",
+      "amount_paise": 2484900,
+      "issue_day": -61,
+      "due_day": -31,
+      "description": "corrugated boxes \u2014 PO 4573"
+    },
+    {
+      "id": "inv_0095",
+      "debtor_id": "cust_003",
+      "amount_paise": 6096100,
+      "issue_day": -64,
+      "due_day": -34,
+      "description": "corrugated boxes \u2014 PO 7284"
+    },
+    {
+      "id": "inv_0096",
+      "debtor_id": "cust_023",
+      "amount_paise": 1215300,
+      "issue_day": -46,
+      "due_day": -16,
+      "description": "fasteners \u2014 PO 4155"
+    },
+    {
+      "id": "inv_0097",
+      "debtor_id": "cust_003",
+      "amount_paise": 12086200,
+      "issue_day": -74,
+      "due_day": -44,
+      "description": "cotton yarn lot \u2014 PO 6311"
+    },
+    {
+      "id": "inv_0098",
+      "debtor_id": "cust_008",
+      "amount_paise": 6061300,
+      "issue_day": -60,
+      "due_day": -30,
+      "description": "catering services \u2014 PO 6017"
+    },
+    {
+      "id": "inv_0099",
+      "debtor_id": "cust_027",
+      "amount_paise": 3259600,
+      "issue_day": -46,
+      "due_day": -16,
+      "description": "dyes & chemicals \u2014 PO 7376"
+    },
+    {
+      "id": "inv_0100",
+      "debtor_id": "cust_024",
+      "amount_paise": 8551500,
+      "issue_day": -59,
+      "due_day": -29,
+      "description": "corrugated boxes \u2014 PO 1382"
+    },
+    {
+      "id": "inv_0101",
+      "debtor_id": "cust_001",
+      "amount_paise": 17550100,
+      "issue_day": -60,
+      "due_day": -30,
+      "description": "MS pipes \u2014 PO 8320"
+    },
+    {
+      "id": "inv_0102",
+      "debtor_id": "cust_040",
+      "amount_paise": 8585600,
+      "issue_day": -42,
+      "due_day": -12,
+      "description": "office fit-out \u2014 PO 7559"
+    },
+    {
+      "id": "inv_0103",
+      "debtor_id": "cust_007",
+      "amount_paise": 1213100,
+      "issue_day": -53,
+      "due_day": -23,
+      "description": "dyes & chemicals \u2014 PO 6985"
+    },
+    {
+      "id": "inv_0104",
+      "debtor_id": "cust_006",
+      "amount_paise": 8551600,
+      "issue_day": -63,
+      "due_day": -33,
+      "description": "pallets \u2014 PO 1667"
+    },
+    {
+      "id": "inv_0105",
+      "debtor_id": "cust_003",
+      "amount_paise": 24013300,
+      "issue_day": -36,
+      "due_day": -6,
+      "description": "fasteners \u2014 PO 6140"
+    },
+    {
+      "id": "inv_0106",
+      "debtor_id": "cust_033",
+      "amount_paise": 1205500,
+      "issue_day": -63,
+      "due_day": -33,
+      "description": "dyes & chemicals \u2014 PO 3231"
+    },
+    {
+      "id": "inv_0107",
+      "debtor_id": "cust_002",
+      "amount_paise": 1262800,
+      "issue_day": -75,
+      "due_day": -45,
+      "description": "printed labels \u2014 PO 4173"
+    },
+    {
+      "id": "inv_0108",
+      "debtor_id": "cust_009",
+      "amount_paise": 8529400,
+      "issue_day": -41,
+      "due_day": -11,
+      "description": "pallets \u2014 PO 4622"
+    },
+    {
+      "id": "inv_0109",
+      "debtor_id": "cust_005",
+      "amount_paise": 4562500,
+      "issue_day": -47,
+      "due_day": -17,
+      "description": "corrugated boxes \u2014 PO 6305"
+    },
+    {
+      "id": "inv_0110",
+      "debtor_id": "cust_040",
+      "amount_paise": 3292600,
+      "issue_day": -60,
+      "due_day": -30,
+      "description": "corrugated boxes \u2014 PO 5164"
+    },
+    {
+      "id": "inv_0111",
+      "debtor_id": "cust_033",
+      "amount_paise": 8521300,
+      "issue_day": -68,
+      "due_day": -38,
+      "description": "packaging film \u2014 PO 9290"
+    },
+    {
+      "id": "inv_0112",
+      "debtor_id": "cust_016",
+      "amount_paise": 4538100,
+      "issue_day": -33,
+      "due_day": -3,
+      "description": "MS pipes \u2014 PO 3983"
+    },
+    {
+      "id": "inv_0113",
+      "debtor_id": "cust_026",
+      "amount_paise": 1915100,
+      "issue_day": -48,
+      "due_day": -18,
+      "description": "pallets \u2014 PO 6371"
+    },
+    {
+      "id": "inv_0114",
+      "debtor_id": "cust_025",
+      "amount_paise": 1931100,
+      "issue_day": -47,
+      "due_day": -17,
+      "description": "printed labels \u2014 PO 9695"
+    },
+    {
+      "id": "inv_0115",
+      "debtor_id": "cust_004",
+      "amount_paise": 24087800,
+      "issue_day": -54,
+      "due_day": -24,
+      "description": "office fit-out \u2014 PO 9543"
+    },
+    {
+      "id": "inv_0116",
+      "debtor_id": "cust_038",
+      "amount_paise": 1225800,
+      "issue_day": -65,
+      "due_day": -35,
+      "description": "pallets \u2014 PO 7459"
+    },
+    {
+      "id": "inv_0117",
+      "debtor_id": "cust_024",
+      "amount_paise": 3238400,
+      "issue_day": -54,
+      "due_day": -24,
+      "description": "CNC job work \u2014 PO 3395"
+    },
+    {
+      "id": "inv_0118",
+      "debtor_id": "cust_024",
+      "amount_paise": 4578200,
+      "issue_day": -36,
+      "due_day": -6,
+      "description": "office fit-out \u2014 PO 4769"
+    },
+    {
+      "id": "inv_0119",
+      "debtor_id": "cust_012",
+      "amount_paise": 17576100,
+      "issue_day": -34,
+      "due_day": -4,
+      "description": "packaging film \u2014 PO 9455"
+    },
+    {
+      "id": "inv_0120",
+      "debtor_id": "cust_017",
+      "amount_paise": 3265400,
+      "issue_day": -68,
+      "due_day": -38,
+      "description": "pallets \u2014 PO 6122"
+    }
+  ]
+}
