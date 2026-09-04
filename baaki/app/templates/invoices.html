@@ -1,0 +1,58 @@
+{% extends "base.html" %}{% set nav='invoices' %}
+{% block title %}Invoices · Baaki{% endblock %}
+{% block body %}
+<div class="head">
+  <div><h1>Invoices</h1><div class="sub">Ordered by money at risk — risk score × outstanding.</div></div>
+  <div class="actions">
+    <form method="get" action="/app/invoices" style="display:flex;gap:8px;margin:0">
+      <input type="hidden" name="status" value="{{ status }}">
+      <input type="text" name="q" value="{{ q }}" placeholder="Search invoice or customer" style="width:230px">
+      <button class="btn" type="submit">Search</button>
+    </form>
+    <a class="btn" href="/app/import">Import</a>
+  </div>
+</div>
+
+<div class="chips">
+  {% for key in ['all','open','partially_paid','paid','escalated','stopped'] %}
+    {% if counts.get(key) %}
+    <a class="chip {{ 'on' if status==key }}" href="/app/invoices?status={{ key }}{% if q %}&q={{ q }}{% endif %}">
+      {{ key.replace('_',' ') }} {{ counts.get(key) }}
+    </a>
+    {% endif %}
+  {% endfor %}
+</div>
+
+<div class="card">
+  <div class="scroll">
+  <table>
+    <thead><tr>
+      <th>Invoice</th><th>Customer</th><th class="num">Outstanding</th><th class="num">Due</th>
+      <th>Status</th><th class="num">Risk</th><th class="num">Contacts</th><th>Next action</th>
+    </tr></thead>
+    <tbody>
+    {% for r in rows %}
+      {% set od = (r.due_on - today).days if today else 0 %}
+      <tr onclick="location='/app/invoices/{{ r.id }}'" style="cursor:pointer">
+        <td><a href="/app/invoices/{{ r.id }}">{{ r.number }}</a><div class="muted small">{{ r.description[:40] }}</div></td>
+        <td>{{ customers[r.customer_id].name if r.customer_id in customers else '—' }}</td>
+        <td class="num">{{ r.outstanding_paise|inr }}{% if r.amount_paid_paise %}<div class="muted small">of {{ r.amount_paise|inr }}</div>{% endif %}</td>
+        <td class="num">{{ r.due_on|ago }}</td>
+        <td><span class="pill st-{{ r.status }}"><span class="dot"></span>{{ r.status.replace('_',' ') }}</span></td>
+        <td class="num">
+          {% if r.risk_score is none %}<span class="muted" title="Needs at least one settled invoice from this customer before a score is meaningful">—</span>
+          {% elif r.risk_score >= 0.66 %}<span class="risk hi">{{ r.risk_score }}</span>
+          {% elif r.risk_score >= 0.4 %}<span class="risk md">{{ r.risk_score }}</span>
+          {% else %}<span class="risk lo">{{ r.risk_score }}</span>{% endif %}
+        </td>
+        <td class="num">{{ r.contact_count }}</td>
+        <td class="dim small">{{ r.next_action_on|ago if r.next_action_on else '—' }}</td>
+      </tr>
+    {% else %}
+      <tr><td colspan="8" class="empty">No invoices match. <a href="/app/import">Import a ledger</a>.</td></tr>
+    {% endfor %}
+    </tbody>
+  </table>
+  </div>
+</div>
+{% endblock %}

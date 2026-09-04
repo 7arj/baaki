@@ -1,0 +1,33 @@
+{% extends "base.html" %}{% set nav='audit' %}
+{% block title %}Audit · Baaki{% endblock %}
+{% block body %}
+<div class="head">
+  <div><h1>Audit log</h1><div class="sub">Every decision, policy verdict, API call and payment — hash-chained.</div></div>
+  <div class="actions"><a class="btn" href="/app/audit/export.jsonl">Export JSONL</a></div>
+</div>
+
+<div class="banner {{ 'ok' if chain_ok else 'err' }}">
+  <span class="ico">{{ '✓' if chain_ok else '!' }}</span>
+  <div><b>{{ 'Chain intact' if chain_ok else 'Chain broken' }}</b> — {{ chain_msg }}</div>
+</div>
+
+<div class="card">
+  <div class="scroll">
+  <table>
+    <thead><tr><th>#</th><th>When</th><th>Event</th><th>Actor</th><th>Invoice</th><th>Detail</th></tr></thead>
+    <tbody>
+    {% for r in rows %}
+    <tr>
+      <td class="muted tnum">{{ r.seq }}</td>
+      <td class="dim small">{{ r.at.strftime('%d %b %H:%M') }}</td>
+      <td><span class="pill">{{ r.event }}</span></td>
+      <td class="dim small">{{ r.actor }}</td>
+      <td>{% if r.invoice_id in invs %}<a href="/app/invoices/{{ r.invoice_id }}">{{ invs[r.invoice_id].number }}</a>{% else %}<span class="muted">—</span>{% endif %}</td>
+      <td class="mono" style="max-width:520px">{{ payloads[r.id] }}</td>
+    </tr>
+    {% else %}<tr><td colspan="6" class="empty">Nothing logged yet.</td></tr>{% endfor %}
+    </tbody>
+  </table>
+  </div>
+</div>
+{% endblock %}

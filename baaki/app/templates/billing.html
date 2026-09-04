@@ -1,0 +1,53 @@
+{% extends "base.html" %}{% set nav='billing' %}
+{% block title %}Billing · Baaki{% endblock %}
+{% block body %}
+<div class="head"><div>
+  <h1>Billing</h1>
+  <div class="sub">
+    On <b>{{ org.plan.value }}</b> · {{ org.subscription_status.value.replace('_',' ') }}
+    {% if org.trial_ends_on and org.plan.value == 'trial' %} · trial ends {{ org.trial_ends_on.strftime('%d %b %Y') }}{% endif %}
+  </div>
+</div></div>
+
+<div class="card" style="margin-bottom:16px">
+  <h2>Usage</h2>
+  <div class="hint">Open invoices count towards your plan; paid and stopped ones don't.</div>
+  <div class="agebar" style="grid-template-columns:150px 1fr 120px">
+    <span class="dim">Open invoices</span>
+    <span class="bar"><span style="width:{{ [100, (100*used/limit)]|min|round(1) if limit < 1000000 else 2 }}%"></span></span>
+    <span class="tnum" style="text-align:right">{{ used }} / {{ limit if limit < 1000000 else '∞' }}</span>
+  </div>
+</div>
+
+<div class="grid g3">
+  {% for p in plans %}
+  <div class="card plan {{ 'current' if org.plan == p.plan }}">
+    <div class="btn-row" style="justify-content:space-between">
+      <h3>{{ p.name }}</h3>
+      {% if org.plan == p.plan %}<span class="pill st-paid"><span class="dot"></span>current</span>{% endif %}
+    </div>
+    <div class="price" style="margin-top:6px">₹{{ '{:,}'.format(p.price_paise // 100) }}<small> / month</small></div>
+    <p class="dim small" style="margin-top:8px">{{ p.blurb }}</p>
+    <ul>{% for f in p.features %}<li>{{ f }}</li>{% endfor %}</ul>
+    <form method="post" action="/app/billing/subscribe" style="margin-top:16px">
+      <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+      <input type="hidden" name="plan" value="{{ p.plan.value }}">
+      <button class="btn {{ 'primary' if org.plan != p.plan }}" style="width:100%;justify-content:center"
+              type="submit" {% if org.plan == p.plan and org.subscription_status.value == 'active' %}disabled{% endif %}>
+        {% if org.plan == p.plan %}Current plan{% else %}Choose {{ p.name }}{% endif %}
+      </button>
+    </form>
+  </div>
+  {% endfor %}
+</div>
+
+<div class="card" style="margin-top:16px">
+  <h2>How billing works</h2>
+  <p class="dim small">Baaki bills through Razorpay Subscriptions — the same rails it helps you collect on.
+    Cancel any time; the agent stops contacting your customers the moment a subscription ends, and your
+    ledger and audit trail stay exportable.</p>
+  {% if org.rzp_subscription_id %}
+  <dl class="kv" style="margin-top:10px"><dt>Subscription</dt><dd><code>{{ org.rzp_subscription_id }}</code></dd></dl>
+  {% endif %}
+</div>
+{% endblock %}

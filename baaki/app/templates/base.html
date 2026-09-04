@@ -1,0 +1,40 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>{% block title %}Baaki{% endblock %}</title>
+<link rel="stylesheet" href="/static/app.css">
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'><circle cx='16' cy='16' r='13' fill='%232a78d6'/></svg>">
+</head>
+<body>
+{% if principal %}
+<header class="top"><div class="top-in">
+  <a class="brand" href="/app"><span class="dot"></span>Baaki<span class="tag">{{ org.name }}</span></a>
+  <nav class="nav">
+    <a href="/app" class="{{ 'on' if nav=='dashboard' }}">Dashboard</a>
+    <a href="/app/invoices" class="{{ 'on' if nav=='invoices' }}">Invoices</a>
+    <a href="/app/approvals" class="{{ 'on' if nav=='approvals' }}">Approvals{% if pending_count %}<span class="count">{{ pending_count }}</span>{% endif %}</a>
+    <a href="/app/audit" class="{{ 'on' if nav=='audit' }}">Audit</a>
+    <a href="/app/settings" class="{{ 'on' if nav=='settings' }}">Settings</a>
+    <a href="/app/billing" class="{{ 'on' if nav=='billing' }}">Billing</a>
+  </nav>
+  <div class="spacer"></div>
+  <div class="who">
+    <span>{{ principal.user.email }}</span>
+    <form method="post" action="/logout" style="margin:0">
+      <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+      <button class="btn ghost sm" type="submit">Sign out</button>
+    </form>
+  </div>
+</div></header>
+{% endif %}
+<main>
+  {% if ok %}<div class="banner ok"><span class="ico">✓</span><div>{{ ok }}</div></div>{% endif %}
+  {% if err %}<div class="banner err"><span class="ico">!</span><div>{{ err }}</div></div>{% endif %}
+  {% if entitlement %}<div class="banner warn"><span class="ico">!</span><div>{{ entitlement }} <a href="/app/billing">View plans →</a></div></div>{% endif %}
+  {% block body %}{% endblock %}
+</main>
+{% block foot %}{% endblock %}
+</body>
+</html>

@@ -1,0 +1,55 @@
+{% extends "base.html" %}{% set nav='invoices' %}
+{% block title %}Import invoices · Baaki{% endblock %}
+{% block body %}
+<div class="head"><div>
+  <h1>Import invoices</h1>
+  <div class="sub">Export unpaid invoices from Tally, Zoho or Excel as CSV. {{ count }} invoice(s) currently loaded.</div>
+</div></div>
+
+<div class="split">
+  <div class="card">
+    <h2>Upload a CSV</h2>
+    <div class="hint">The whole file is validated before anything is saved — if any row is malformed,
+      nothing is imported and you'll get the row numbers.</div>
+    <form method="post" action="/app/import" enctype="multipart/form-data">
+      <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+      <div class="field">
+        <label for="file">CSV file</label>
+        <input id="file" name="file" type="file" accept=".csv,text/csv" required>
+        <div class="help">Max 5 MB. Existing invoice numbers are updated, not duplicated.</div>
+      </div>
+      <div class="btn-row">
+        <button class="btn primary" type="submit">Import</button>
+        <a class="btn" href="/app/import/sample.csv">Download template</a>
+      </div>
+    </form>
+    <div class="sep"></div>
+    <h3>Just exploring?</h3>
+    <p class="muted small">Load five realistic sample invoices to try a run end to end.</p>
+    <form method="post" action="/app/import/demo">
+      <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+      <button class="btn" type="submit">Load sample data</button>
+    </form>
+  </div>
+
+  <div class="card">
+    <h2>Required columns</h2>
+    <div class="hint">Header row must match exactly. <code>description</code> is optional.</div>
+    <table>
+      <tbody>
+        <tr><td><code>invoice_number</code></td><td class="dim small">Your invoice number — the unique key</td></tr>
+        <tr><td><code>customer_name</code></td><td class="dim small">Matched to an existing customer, or created</td></tr>
+        <tr><td><code>customer_email</code></td><td class="dim small">Where reminders are sent</td></tr>
+        <tr><td><code>customer_phone</code></td><td class="dim small">E.164, e.g. +919812345671</td></tr>
+        <tr><td><code>amount_inr</code></td><td class="dim small">Rupees, e.g. 240866.00</td></tr>
+        <tr><td><code>issued_on</code></td><td class="dim small">YYYY-MM-DD</td></tr>
+        <tr><td><code>due_on</code></td><td class="dim small">YYYY-MM-DD</td></tr>
+        <tr><td><code>description</code></td><td class="dim small">Shown to the customer in reminders</td></tr>
+      </tbody>
+    </table>
+    <div class="sep"></div>
+    <h3>Example</h3>
+    <div class="mono" style="max-height:170px;overflow:auto">{{ sample }}</div>
+  </div>
+</div>
+{% endblock %}

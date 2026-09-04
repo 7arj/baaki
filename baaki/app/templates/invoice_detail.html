@@ -1,0 +1,116 @@
+{% extends "base.html" %}{% set nav='invoices' %}
+{% block title %}{{ row.number }} · Baaki{% endblock %}
+{% block body %}
+<div class="head">
+  <div>
+    <h1>{{ row.number }}</h1>
+    <div class="sub">{{ cust.name if cust }} · {{ row.description }}</div>
+  </div>
+  <div class="actions">
+    <a class="btn ghost" href="/app/invoices">← All invoices</a>
+    {% if row.status in ('open','partially_paid') %}
+    <form method="post" action="/app/invoices/{{ row.id }}/stop" style="margin:0"
+          onsubmit="return confirm('Stop all automated contact for this invoice?')">
+      <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+      <input type="hidden" name="reason" value="stopped manually by {{ principal.user.email }}">
+      <button class="btn danger" type="submit">Stop chasing this</button>
+    </form>
+    {% endif %}
+  </div>
+</div>
+
+<div class="split">
+  <div>
+    <div class="card">
+      <h2>Timeline</h2>
+      <div class="hint">Everything sent, received and decided, in order.</div>
+      <div class="tl">
+        {% for e in events %}
+        <div class="ev {{ e.kind }}">
+          <span class="when">{{ e.at.strftime('%d %b, %H:%M') }}</span>
+          <span class="kind">{{ e.kind }}</span>
+          <span class="body">{{ e.summary }}</span>
+        </div>
+        {% else %}<p class="muted small">Nothing yet. Run the agent to start recovery on this invoice.</p>{% endfor %}
+      </div>
+    </div>
+
+    <div class="card">
+      <h2>Record a reply</h2>
+      <div class="hint">Paste what the customer said. The agent classifies it — a dispute or a "stop
+        contacting us" halts automation immediately — and picks the next step accordingly.</div>
+      <form method="post" action="/app/invoices/{{ row.id }}/note">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+        <div class="field">
+          <textarea name="text" required placeholder="e.g. 20 cartons were short-shipped, we're not paying until it's corrected"></textarea>
+        </div>
+        <button class="btn primary" type="submit">Record reply</button>
+      </form>
+    </div>
+
+    <div class="card">
+      <h2>Audit trail</h2>
+      <div class="hint">{{ audit|length }} hash-chained entries for this invoice.</div>
+      <div class="scroll">
+      {% for a in audit %}
+        <div style="padding:8px 0;border-bottom:1px solid var(--grid)">
+          <div><span class="pill">{{ a.event }}</span> <span class="muted small">#{{ a.seq }} · {{ a.actor }} · {{ a.at.strftime('%d %b %H:%M') }}</span></div>
+          <div class="mono" style="margin-top:5px">{{ audit_payloads[loop.index0] }}</div>
+        </div>
+      {% else %}<p class="muted small">No audit entries yet.</p>{% endfor %}
+      </div>
+    </div>
+  </div>
+
+  <div>
+    <div class="card">
+      <h2>Summary</h2>
+      <dl class="kv" style="margin-top:12px">
+        <dt>Invoiced</dt><dd class="tnum">{{ row.amount_paise|inr }}</dd>
+        <dt>Paid</dt><dd class="tnum">{{ row.amount_paid_paise|inr }}</dd>
+        <dt>Outstanding</dt><dd class="tnum"><b>{{ row.outstanding_paise|inr }}</b></dd>
+        <dt>Issued</dt><dd>{{ row.issued_on.strftime('%d %b %Y') }}</dd>
+        <dt>Due</dt><dd>{{ row.due_on.strftime('%d %b %Y') }} <span class="muted">({{ row.due_on|ago }})</span></dd>
+        <dt>Status</dt><dd><span class="pill st-{{ row.status }}"><span class="dot"></span>{{ row.status.replace('_',' ') }}</span></dd>
+        <dt>Risk</dt><dd>{{ row.risk_score if row.risk_score is not none else '—' }}</dd>
+        <dt>Contacts</dt><dd>{{ row.contact_count }}{% if row.last_contact_on %} · last {{ row.last_contact_on|ago }}{% endif %}</dd>
+        <dt>Next action</dt><dd>{{ row.next_action_on|ago if row.next_action_on else 'none scheduled' }}</dd>
+        {% if row.payment_link_url %}<dt>Payment link</dt><dd><a href="{{ row.payment_link_url }}" target="_blank" rel="noopener">{{ row.payment_link_id }}</a></dd>{% endif %}
+        {% if row.discount_pct_offered %}<dt>Discount offered</dt><dd>{{ row.discount_pct_offered }}%</dd>{% endif %}
+      </dl>
+      {% if row.escalation_reason or row.stop_reason %}
+      <div class="banner warn" style="margin:16px 0 0">
+        <span class="ico">!</span><div>{{ row.escalation_reason or row.stop_reason }}</div>
+      </div>
+      {% endif %}
+    </div>
+
+    {% if cust %}
+    <div class="card">
+      <h2>Customer</h2>
+      <dl class="kv" style="margin-top:12px">
+        <dt>Name</dt><dd>{{ cust.name }}</dd>
+        <dt>Email</dt><dd>{{ cust.email or '—' }}</dd>
+        <dt>Phone</dt><dd>{{ cust.phone or '—' }}</dd>
+        {% if cust.do_not_contact %}<dt>Contact</dt><dd><span class="pill st-stopped"><span class="dot"></span>do not contact</span></dd>{% endif %}
+      </dl>
+    </div>
+    {% endif %}
+
+    <div class="card">
+      <h2>Messages</h2>
+      <div class="hint">{{ msgs|length }} outbound on this invoice.</div>
+      {% for m in msgs %}
+      <div style="padding:9px 0;border-bottom:1px solid var(--grid)">
+        <div class="btn-row" style="gap:6px">
+          <span class="pill">{{ m.status.replace('_',' ') }}</span>
+          <span class="muted small">{{ m.action.replace('_',' ') }} · {{ m.decided_by }} · {{ m.created_at|ago }}</span>
+        </div>
+        <div class="dim small" style="margin-top:5px;white-space:pre-wrap">{{ m.body[:260] }}</div>
+        {% if m.rationale %}<div class="muted small" style="margin-top:4px"><i>Why: {{ m.rationale }}</i></div>{% endif %}
+      </div>
+      {% else %}<p class="muted small">Nothing sent yet.</p>{% endfor %}
+    </div>
+  </div>
+</div>
+{% endblock %}

@@ -1,0 +1,124 @@
+{% extends "base.html" %}{% set nav='dashboard' %}{% set pending_count=pending %}
+{% block title %}Dashboard · Baaki{% endblock %}
+{% block body %}
+<div class="head">
+  <div>
+    <h1>Dashboard</h1>
+    <div class="sub">
+      {% if last_run %}Agent last ran {{ last_run.at|ago }}.{% else %}The agent hasn't run yet.{% endif %}
+      {% if org.agent_enabled %}<span class="pill st-paid"><span class="dot"></span>Agent on</span>
+      {% else %}<span class="pill"><span class="dot" style="background:var(--muted)"></span>Agent paused</span>{% endif %}
+      {% if org.approval_required %}<span class="pill">You approve each message</span>{% endif %}
+    </div>
+  </div>
+  <div class="actions">
+    <a class="btn" href="/app/import">Import invoices</a>
+    <form method="post" action="/app/run" style="margin:0">
+      <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+      <button class="btn primary" type="submit" {% if not has_data %}disabled title="Import a ledger first"{% endif %}>Run agent now</button>
+    </form>
+  </div>
+</div>
+
+{% if not has_data %}
+<div class="card empty">
+  <h2>Let's get your ledger in</h2>
+  <p>Import a CSV of your unpaid invoices — or load five sample ones to see how Baaki works.</p>
+  <div class="btn-row" style="justify-content:center">
+    <a class="btn primary" href="/app/import">Import a CSV</a>
+    <form method="post" action="/app/import/demo" style="margin:0">
+      <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+      <button class="btn" type="submit">Load sample data</button>
+    </form>
+  </div>
+</div>
+{% else %}
+
+<section class="tiles">
+  <div class="tile accent">
+    <div class="k">Overdue right now</div>
+    <div class="v">{{ t.overdue_paise|inr }}</div>
+    <div class="d">across {{ t.overdue }} invoices</div>
+  </div>
+  <div class="tile">
+    <div class="k">Total outstanding</div>
+    <div class="v">{{ t.outstanding_paise|inr }}</div>
+    <div class="d">{{ t.open }} open of {{ t.invoices }}</div>
+  </div>
+  <div class="tile">
+    <div class="k">Recovered</div>
+    <div class="v">{{ t.recovered_paise|inr }}</div>
+    <div class="d up">collected through Baaki</div>
+  </div>
+  {% if t.scored %}
+  <div class="tile">
+    <div class="k">High risk</div>
+    <div class="v">{{ t.at_risk_paise|inr }}</div>
+    <div class="d">unlikely to pay without a nudge</div>
+  </div>
+  {% else %}
+  <div class="tile">
+    <div class="k">Longest overdue</div>
+    <div class="v">{{ ((today - t.oldest.due_on).days if t.oldest else 0) }}<small style="font-size:15px"> days</small></div>
+    <div class="d">{% if t.oldest %}{{ t.oldest.number }} · {{ t.oldest.outstanding_paise|inr }}{% else %}nothing overdue{% endif %}</div>
+  </div>
+  {% endif %}
+  <div class="tile">
+    <div class="k">Waiting on you</div>
+    <div class="v">{{ pending }}</div>
+    <div class="d">{% if pending %}<a href="/app/approvals">review messages →</a>{% else %}nothing to approve{% endif %}</div>
+  </div>
+</section>
+
+<div class="split">
+  <div>
+    <div class="card">
+      <h2>Ageing of overdue money</h2>
+      <div class="hint">Days past due, by amount still outstanding.</div>
+      {% set maxb = (t.buckets.values()|max) or 1 %}
+      {% for label, amount in t.buckets.items() %}
+      <div class="agebar">
+        <span class="dim">{{ label }} days</span>
+        <span class="bar" title="{{ amount|inr }}"><span style="width:{{ (100*amount/maxb)|round(1) }}%"></span></span>
+        <span class="tnum" style="text-align:right">{{ amount|inr }}</span>
+      </div>
+      {% endfor %}
+    </div>
+
+    <div class="card">
+      <h2>Needs a human — {{ t.exceptions|length }}</h2>
+      <div class="hint">The agent stopped on these on purpose. Largest first.</div>
+      {% if t.exceptions %}
+      <table>
+        <thead><tr><th>Invoice</th><th>Customer</th><th class="num">Outstanding</th><th>Why</th></tr></thead>
+        <tbody>
+        {% for r in t.exceptions[:10] %}
+          <tr onclick="location='/app/invoices/{{ r.id }}'" style="cursor:pointer">
+            <td><a href="/app/invoices/{{ r.id }}">{{ r.number }}</a></td>
+            <td>{{ cust_by_id[r.customer_id].name if r.customer_id in cust_by_id else '—' }}</td>
+            <td class="num">{{ r.outstanding_paise|inr }}</td>
+            <td class="dim small">{{ (r.escalation_reason or r.stop_reason or '')[:90] }}</td>
+          </tr>
+        {% endfor %}
+        </tbody>
+      </table>
+      {% else %}<p class="muted small">Nothing escalated. The agent is handling everything within policy.</p>{% endif %}
+    </div>
+  </div>
+
+  <div class="card">
+    <h2>Latest activity</h2>
+    <div class="hint">Everything the agent and your customers have done.</div>
+    <div class="tl">
+      {% for e in recent %}
+      <div class="ev {{ e.kind }}">
+        <span class="when">{{ e.at|ago }}</span>
+        <span class="kind">{{ e.kind }}</span>
+        <span class="body">{% if e.invoice_id in inv_by_id %}<a href="/app/invoices/{{ e.invoice_id }}">{{ inv_by_id[e.invoice_id].number }}</a> · {% endif %}{{ e.summary[:190] }}</span>
+      </div>
+      {% else %}<p class="muted small">No activity yet — run the agent to get started.</p>{% endfor %}
+    </div>
+  </div>
+</div>
+{% endif %}
+{% endblock %}

@@ -137,9 +137,55 @@ def cmd_audit(a):
 
 
 def cmd_serve(a):
+    """The simulation dashboard (read-only, no accounts)."""
     import uvicorn
 
     uvicorn.run("baaki.server:app", host="127.0.0.1", port=a.port, reload=False)
+
+
+def cmd_app(a):
+    """The product: multi-tenant web app with accounts, approvals, billing."""
+    import uvicorn
+
+    console.print(f"[green]Baaki[/] → http://127.0.0.1:{a.port}")
+    uvicorn.run("baaki.app.web:app", host=a.host, port=a.port, reload=a.reload)
+
+
+def cmd_demo(a):
+    """Seed a demo tenant with a realistic ledger, payments, replies and escalations."""
+    from .app.demo import seed
+
+    res = seed(reset=not a.keep)
+    console.print("[green]Demo tenant ready[/]")
+    for k, v in res.items():
+        console.print(f"  {k:<18} {v}")
+    console.print("\nSign in at [bold]http://127.0.0.1:8080[/] with "
+                  f"[bold]{res.get('email')}[/] / [bold]{res.get('password')}[/]")
+
+
+def cmd_worker(a):
+    """Run the daily recovery pass for every eligible org, then flush the outbox."""
+    from sqlmodel import Session, select
+
+    from .app.billing import entitlement_problem
+    from .app.db import engine, init_db
+    from .app.models import Org
+    from .app.service import RecoveryEngine
+    from .app.transports import dispatch_outbox
+
+    init_db()
+    with Session(engine()) as db:
+        orgs = db.exec(select(Org).where(Org.agent_enabled == True)).all()  # noqa: E712
+        for org in orgs:
+            if problem := entitlement_problem(org):
+                console.print(f"[yellow]skip[/] {org.slug}: {problem}")
+                continue
+            res = RecoveryEngine(db, org, dry_run=a.dry_run).run()
+            console.print(f"[green]{org.slug}[/] {res}")
+        if not a.dry_run:
+            console.print(f"outbox: {dispatch_outbox(db)}")
+        if not orgs:
+            console.print("no organisations have the agent enabled")
 
 
 def main(argv=None):
@@ -163,9 +209,23 @@ def main(argv=None):
     v.add_argument("path")
     v.set_defaults(fn=cmd_audit)
 
-    s = sub.add_parser("serve", help="dashboard + Razorpay webhook receiver")
+    s = sub.add_parser("serve", help="simulation dashboard (read-only, no accounts)")
     s.add_argument("--port", type=int, default=8000)
     s.set_defaults(fn=cmd_serve)
+
+    w = sub.add_parser("app", help="run the Baaki product (accounts, ledger, approvals, billing)")
+    w.add_argument("--port", type=int, default=8080)
+    w.add_argument("--host", default="127.0.0.1")
+    w.add_argument("--reload", action="store_true")
+    w.set_defaults(fn=cmd_app)
+
+    d = sub.add_parser("demo", help="seed a demo tenant you can sign into")
+    d.add_argument("--keep", action="store_true", help="don't reset if it already exists")
+    d.set_defaults(fn=cmd_demo)
+
+    k = sub.add_parser("worker", help="daily recovery pass for every enabled org (run from cron)")
+    k.add_argument("--dry-run", action="store_true", help="queue for approval, send nothing")
+    k.set_defaults(fn=cmd_worker)
 
     a = p.parse_args(argv)
     a.fn(a)

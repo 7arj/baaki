@@ -1,0 +1,54 @@
+{% extends "base.html" %}{% block title %}Baaki — get your invoices paid{% endblock %}
+{% block body %}
+<div style="display:flex;align-items:center;gap:10px;margin-bottom:8px">
+  <a class="brand" href="/"><span class="dot"></span>Baaki</a>
+  <div class="spacer"></div>
+  <a class="btn ghost" href="/login">Sign in</a>
+  <a class="btn primary" href="/signup">Start free trial</a>
+</div>
+
+<section class="hero">
+  <h1>Your customers owe you money.<br>Baaki collects it — politely.</h1>
+  <p>An AI agent that works your overdue ledger the way a good collections person would: a reminder
+     with a Razorpay payment link, then a payment plan, then a clean hand-off to you when a customer
+     disputes or asks to be left alone. It cannot go off-script, and every action is logged.</p>
+  <div class="btn-row" style="justify-content:center">
+    <a class="btn primary lg" href="/signup">Start 14-day free trial</a>
+    <a class="btn lg" href="/login">Sign in</a>
+  </div>
+  <p class="muted small" style="margin-top:14px">No card required. Import a CSV and see what it would send before anything goes out.</p>
+</section>
+
+<section class="grid g3" style="margin-bottom:32px">
+  <div class="card">
+    <h2>It knows when to stop</h2>
+    <p class="dim small">A dispute, a hardship claim, or "stop contacting us" ends automated chasing
+       immediately and lands on your desk with the customer's own words and the amount at stake.</p>
+  </div>
+  <div class="card">
+    <h2>It can't go off-script</h2>
+    <p class="dim small">Contact only 8am–7pm. Discounts capped and only after your chosen ageing.
+       No threats, no calling family or employers. Every message is checked before it leaves.</p>
+  </div>
+  <div class="card">
+    <h2>You can prove what happened</h2>
+    <p class="dim small">Every decision, policy verdict, payment link and rupee received is written to a
+       hash-chained audit log you can export and verify.</p>
+  </div>
+</section>
+
+<h2 style="margin-bottom:4px">Pricing</h2>
+<p class="muted small" style="margin-bottom:16px">Fourteen days free. Cancel any time — the agent stops the moment you do.</p>
+<section class="grid g3">
+  {% for p in plans %}
+  <div class="card plan">
+    <h3>{{ p.name }}</h3>
+    <div class="price">₹{{ '{:,}'.format(p.price_paise // 100) }}<small> / month</small></div>
+    <p class="dim small" style="margin-top:8px">{{ p.blurb }}</p>
+    <ul>{% for f in p.features %}<li>{{ f }}</li>{% endfor %}</ul>
+    <a class="btn primary" style="margin-top:16px;width:100%;justify-content:center" href="/signup">Start free</a>
+  </div>
+  {% endfor %}
+</section>
+<footer>Baaki · built on Razorpay Payment Links · <a href="/healthz">status</a></footer>
+{% endblock %}

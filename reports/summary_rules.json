@@ -42,25 +42,25 @@
     "none": {
       "mode": "none",
       "brain": "none",
-      "horizon_days": 45,
+      "horizon_days": 15,
       "invoices": 120,
       "debtors": 40,
       "total_receivable_paise": 829506300,
       "total_receivable": "\u20b982,95,063.00",
-      "recovered_paise": 265845700,
-      "recovered": "\u20b926,58,457.00",
-      "recovery_rate_pct": 32.0,
+      "recovered_paise": 241239800,
+      "recovered": "\u20b924,12,398.00",
+      "recovery_rate_pct": 29.1,
       "recovered_via_link_paise": 0,
       "recovered_via_human_paise": 0,
-      "recovered_organic_paise": 265845700,
+      "recovered_organic_paise": 241239800,
       "discount_written_off_paise": 0,
       "invoices_by_status": {
-        "open": 79,
-        "paid": 41
+        "open": 85,
+        "paid": 35
       },
       "contacts_sent": 0,
       "contacts_per_lakh_recovered": 0.0,
-      "median_days_to_cash": 7,
+      "median_days_to_cash": 6,
       "policy_denials": 0,
       "policy_violations_unenforced": 0,
       "gateway_failures_handled": 0,
@@ -70,13 +70,13 @@
       "llm_unavailable": null,
       "razorpay_calls": 0,
       "exceptions": [],
-      "still_open_unresolved": 79,
-      "still_open_outstanding_paise": 563660600
+      "still_open_unresolved": 85,
+      "still_open_outstanding_paise": 588266500
     },
     "naive": {
       "mode": "naive",
       "brain": "naive",
-      "horizon_days": 45,
+      "horizon_days": 15,
       "invoices": 120,
       "debtors": 40,
       "total_receivable_paise": 829506300,
@@ -92,15 +92,15 @@
         "open": 57,
         "paid": 63
       },
-      "contacts_sent": 1265,
-      "contacts_per_lakh_recovered": 29.42,
+      "contacts_sent": 534,
+      "contacts_per_lakh_recovered": 12.42,
       "median_days_to_cash": 4,
       "policy_denials": 0,
-      "policy_violations_unenforced": 934,
+      "policy_violations_unenforced": 203,
       "gateway_failures_handled": 0,
-      "decisions": 1265,
+      "decisions": 534,
       "decision_sources": {
-        "naive": 1265
+        "naive": 534
       },
       "llm": null,
       "llm_unavailable": null,
@@ -112,37 +112,36 @@
     "agent": {
       "mode": "agent",
       "brain": "rules",
-      "horizon_days": 45,
+      "horizon_days": 15,
       "invoices": 120,
       "debtors": 40,
       "total_receivable_paise": 829506300,
       "total_receivable": "\u20b982,95,063.00",
-      "recovered_paise": 617245878,
-      "recovered": "\u20b961,72,458.78",
-      "recovery_rate_pct": 74.4,
-      "recovered_via_link_paise": 532067378,
+      "recovered_paise": 569728622,
+      "recovered": "\u20b956,97,286.22",
+      "recovery_rate_pct": 68.7,
+      "recovered_via_link_paise": 484550122,
       "recovered_via_human_paise": 33230015,
       "recovered_organic_paise": 49790700,
       "discount_written_off_paise": 2157785,
       "invoices_by_status": {
-        "paid": 86,
-        "stopped": 25,
+        "stopped": 37,
+        "paid": 74,
         "escalated": 9
       },
       "contacts_sent": 294,
-      "contacts_per_lakh_recovered": 4.76,
+      "contacts_per_lakh_recovered": 5.16,
       "median_days_to_cash": 4,
-      "policy_denials": 1,
+      "policy_denials": 0,
       "policy_violations_unenforced": 0,
-      "gateway_failures_handled": 2,
+      "gateway_failures_handled": 0,
       "decisions": 414,
       "decision_sources": {
-        "rules": 413,
-        "rules(rogue)": 1
+        "rules": 414
       },
       "llm": null,
       "llm_unavailable": null,
-      "razorpay_calls": 234,
+      "razorpay_calls": 232,
       "exceptions": [
         {
           "invoice": "inv_0024",
@@ -181,6 +180,15 @@
           "last_inbound": "This invoice is wrong \u2014 20 cartons were short-shipped. Not paying till corrected."
         },
         {
+          "invoice": "inv_0031",
+          "debtor": "Bose Hardware",
+          "outstanding": "\u20b91,22,916.39",
+          "outstanding_paise": 12291639,
+          "status": "stopped",
+          "reason": "no resolution after 4 automated contacts; recommend a human call or write-off review",
+          "last_inbound": "Cash flow is bad, can we split this?"
+        },
+        {
           "invoice": "inv_0039",
           "debtor": "Bose Hardware",
           "outstanding": "\u20b91,21,990.51",
@@ -197,6 +205,24 @@
           "status": "escalated",
           "reason": "dispute raised: 'Quality was rejected by our QC, invoice should be credit-noted.'",
           "last_inbound": "Quality was rejected by our QC, invoice should be credit-noted."
+        },
+        {
+          "invoice": "inv_0065",
+          "debtor": "Chawla Pharma Distributors",
+          "outstanding": "\u20b91,17,079.84",
+          "outstanding_paise": 11707984,
+          "status": "stopped",
+          "reason": "no resolution after 4 automated contacts; recommend a human call or write-off review",
+          "last_inbound": "Cash flow is bad, can we split this?"
+        },
+        {
+          "invoice": "inv_0061",
+          "debtor": "Chawla Hardware",
+          "outstanding": "\u20b990,249.75",
+          "outstanding_paise": 9024975,
+          "status": "stopped",
+          "reason": "no resolution after 4 automated contacts; recommend a human call or write-off review",
+          "last_inbound": "We can do 40% today, balance in 3 weeks."
         },
         {
           "invoice": "inv_0102",
@@ -289,6 +315,15 @@
           "last_inbound": "call later"
         },
         {
+          "invoice": "inv_0018",
+          "debtor": "Banerjee Textiles",
+          "outstanding": "\u20b933,846.00",
+          "outstanding_paise": 3384600,
+          "status": "stopped",
+          "reason": "no resolution after 4 automated contacts; recommend a human call or write-off review",
+          "last_inbound": null
+        },
+        {
           "invoice": "inv_0077",
           "debtor": "Mehta Autoparts",
           "outstanding": "\u20b932,039.00",
@@ -298,6 +333,15 @@
           "last_inbound": null
         },
         {
+          "invoice": "inv_0001",
+          "debtor": "Joshi Logistics",
+          "outstanding": "\u20b925,032.33",
+          "outstanding_paise": 2503233,
+          "status": "stopped",
+          "reason": "no resolution after 4 automated contacts; recommend a human call or write-off review",
+          "last_inbound": "We can do 40% today, balance in 3 weeks."
+        },
+        {
           "invoice": "inv_0017",
           "debtor": "Desai Garments",
           "outstanding": "\u20b923,486.87",
@@ -305,6 +349,15 @@
           "status": "escalated",
           "reason": "financial hardship reported: 'We are winding up the firm.'",
           "last_inbound": "We are winding up the firm."
+        },
+        {
+          "invoice": "inv_0109",
+          "debtor": "Joshi Logistics",
+          "outstanding": "\u20b919,577.21",
+          "outstanding_paise": 1957721,
+          "status": "stopped",
+          "reason": "no resolution after 4 automated contacts; recommend a human call or write-off review",
+          "last_inbound": "We can do 40% today, balance in 3 weeks."
         },
         {
           "invoice": "inv_0091",
@@ -352,6 +405,33 @@
           "last_inbound": "Cash flow is bad, can we split this?"
         },
         {
+          "invoice": "inv_0062",
+          "debtor": "Joshi Logistics",
+          "outstanding": "\u20b915,953.22",
+          "outstanding_paise": 1595322,
+          "status": "stopped",
+          "reason": "no resolution after 4 automated contacts; recommend a human call or write-off review",
+          "last_inbound": "We can do 40% today, balance in 3 weeks."
+        },
+        {
+          "invoice": "inv_0081",
+          "debtor": "Chawla Hardware",
+          "outstanding": "\u20b914,365.50",
+          "outstanding_paise": 1436550,
+          "status": "stopped",
+          "reason": "no resolution after 4 automated contacts; recommend a human call or write-off review",
+          "last_inbound": "Cash flow is bad, can we split this?"
+        },
+        {
+          "invoice": "inv_0029",
+          "debtor": "Chawla Pharma Distributors",
+          "outstanding": "\u20b913,132.68",
+          "outstanding_paise": 1313268,
+          "status": "stopped",
+          "reason": "no resolution after 4 automated contacts; recommend a human call or write-off review",
+          "last_inbound": "Cash flow is bad, can we split this?"
+        },
+        {
           "invoice": "inv_0019",
           "debtor": "Mehta Autoparts",
           "outstanding": "\u20b912,277.00",
@@ -388,6 +468,15 @@
           "last_inbound": null
         },
         {
+          "invoice": "inv_0011",
+          "debtor": "Joshi Logistics",
+          "outstanding": "\u20b910,263.31",
+          "outstanding_paise": 1026331,
+          "status": "stopped",
+          "reason": "no resolution after 4 automated contacts; recommend a human call or write-off review",
+          "last_inbound": "We can do 40% today, balance in 3 weeks."
+        },
+        {
           "invoice": "inv_0035",
           "debtor": "Nair Logistics",
           "outstanding": "\u20b99,316.00",
@@ -395,6 +484,15 @@
           "status": "stopped",
           "reason": "no resolution after 4 automated contacts; recommend a human call or write-off review",
           "last_inbound": "call later"
+        },
+        {
+          "invoice": "inv_0014",
+          "debtor": "Chawla Hardware",
+          "outstanding": "\u20b99,244.50",
+          "outstanding_paise": 924450,
+          "status": "stopped",
+          "reason": "no resolution after 4 automated contacts; recommend a human call or write-off review",
+          "last_inbound": "Cash flow is bad, can we split this?"
         },
         {
           "invoice": "inv_0054",
@@ -449,6 +547,15 @@
           "status": "escalated",
           "reason": "financial hardship reported: 'Factory flooded, operations stopped. Cannot pay currently.'",
           "last_inbound": "Factory flooded, operations stopped. Cannot pay currently."
+        },
+        {
+          "invoice": "inv_0083",
+          "debtor": "Bose Hardware",
+          "outstanding": "\u20b93,511.83",
+          "outstanding_paise": 351183,
+          "status": "stopped",
+          "reason": "no resolution after 4 automated contacts; recommend a human call or write-off review",
+          "last_inbound": "Can we pay half now and the rest next month?"
         }
       ],
       "still_open_unresolved": 0,

@@ -4,3 +4,6 @@ __pycache__/
 .env
 .pytest_cache/
 reports/live_webhooks.jsonl
+data/baaki.db
+data/baaki.db-wal
+data/baaki.db-shm

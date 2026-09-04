@@ -46,7 +46,19 @@ brain (LLM or rules) ────proposes──▶ Policy gate ──allowed─�
   - Duplicate webhook delivery → idempotent on payment id. Bad signature → rejected and logged.
 - **Auditability**: `reports/audit_*.jsonl` is append-only and hash-chained; `python -m baaki audit <file>` proves it hasn't been edited. The dashboard shows, per invoice, every decision, verdict, API call and payment.
 
-## Run it
+## Two things live in this repo
+
+**The submission** — a measured simulation you can reproduce in five seconds with no keys, below.
+**The product** — a multi-tenant web app with accounts, a CSV ledger, an approval queue, per-org
+guardrails and Razorpay subscription billing, built on the same policy engine. See
+**[PRODUCT.md](PRODUCT.md)**:
+
+```bash
+uv run python -m baaki demo   # seed a tenant with a realistic ledger
+uv run python -m baaki app    # http://127.0.0.1:8080 · demo@baaki.app / baaki-demo-2026
+```
+
+## Run the simulation
 
 ```bash
 uv sync                                   # Python 3.12+, installs openai, anthropic, razorpay, fastapi

@@ -14,7 +14,7 @@ from .domain import ActionType, CONTACT_ACTIONS, Debtor, Decision, InstallmentPl
 from .policy import Policy, Verdict
 from .razorpay_client import PaymentLinkClient, RazorpayUnavailable
 
-MERCHANT = "Arjun Industrial Supplies"
+MERCHANT = "Arjun Industrial Supplies"  # simulation default; the product passes the org's legal name
 
 
 @dataclass
@@ -27,11 +27,15 @@ class ExecResult:
 
 
 class Toolbox:
-    def __init__(self, policy: Policy, rzp: PaymentLinkClient, audit: AuditLog, debtors: dict[str, Debtor], enforce: bool = True):
+    def __init__(self, policy: Policy, rzp: PaymentLinkClient, audit: AuditLog, debtors: dict[str, Debtor], enforce: bool = True, on_message=None, merchant: str | None = None):
         self.policy = policy
         self.rzp = rzp
         self.audit = audit
         self.debtors = debtors
+        # Optional sink for real delivery: fn(invoice, day, text, channel, action, decision).
+        # The simulation leaves it None and the message only reaches the audit log.
+        self.on_message = on_message
+        self.merchant = merchant or MERCHANT
         self.enforce = enforce  # False = baseline mode: record violations but don't block
         self.violations = 0
         self.denials = 0
@@ -106,12 +110,14 @@ class Toolbox:
             p.setdefault("days", b.min_gap_days_between_contacts)
         return p
 
-    def _contacted(self, inv: Invoice, day: int, text: str, channel: str = "whatsapp+email") -> None:
+    def _contacted(self, inv: Invoice, day: int, text: str, channel: str = "whatsapp+email", action: str = "", decision=None) -> None:
         inv.contact_count += 1
         inv.contact_days.append(day)
         inv.next_action_day = day + self.policy.bounds.min_gap_days_between_contacts
         inv.log(day, "outbound", text, channel=channel)
         self.audit.record("message_sent", day=day, invoice=inv.id, channel=channel, text=text)
+        if self.on_message:
+            self.on_message(inv, day, text, channel, action, decision)
 
     def _fill(self, text: str | None, inv: Invoice, fallback: str) -> str:
         text = text or fallback
@@ -129,9 +135,9 @@ class Toolbox:
             d.message,
             inv,
             f"Hello {debtor.name}, a gentle reminder that invoice {inv.id} for {rupees(inv.outstanding_paise)} "
-            f"({inv.description}) is {inv.days_overdue(day)} days past due. Pay securely here: {{link}}. — {MERCHANT}",
+            f"({inv.description}) is {inv.days_overdue(day)} days past due. Pay securely here: {{link}}. — {self.merchant}",
         )
-        self._contacted(inv, day, text)
+        self._contacted(inv, day, text, action="send_reminder", decision=d)
         return ExecResult(True, Verdict(True, "ok", ""), "reminder sent", contacted=True)
 
     def _new_link(self, inv: Invoice, day: int, amount: int, accept_partial: bool, min_partial: int, expire_days: int, note: str) -> dict | None:
@@ -149,7 +155,7 @@ class Toolbox:
             "first_min_partial_amount": min_partial if accept_partial else 0,
             "expire_by": int((datetime.now().timestamp()) + expire_days * 86400),
             "reference_id": f"{inv.id}-{day}",
-            "description": f"{MERCHANT}: {inv.description} ({inv.id})",
+            "description": f"{self.merchant}: {inv.description} ({inv.id})",
             "customer": {"name": debtor.name, "contact": debtor.contact, "email": debtor.email},
             "notify": {"sms": False, "email": False},  # Baaki composes its own messages
             "reminder_enable": False,
@@ -184,9 +190,9 @@ class Toolbox:
             inv,
             f"Hello {debtor.name}, invoice {inv.id} for {rupees(inv.outstanding_paise)} ({inv.description}) was due "
             f"{inv.days_overdue(day)} days ago. You can pay securely via UPI/card here: {{link}}.{partial_note} "
-            f"Reply if anything is wrong with the invoice. — {MERCHANT}",
+            f"Reply if anything is wrong with the invoice. — {self.merchant}",
         )
-        self._contacted(inv, day, text)
+        self._contacted(inv, day, text, action="create_payment_link", decision=d)
         return ExecResult(True, Verdict(True, "ok", ""), f"link {link['id']} created ({link['short_url']})", contacted=True)
 
     def _offer_plan(self, d: Decision, p: dict, inv: Invoice, day: int) -> ExecResult:
@@ -200,9 +206,9 @@ class Toolbox:
             d.message,
             inv,
             f"Hello {debtor.name}, we understand cash flow can be tight. For invoice {inv.id} ({rupees(inv.outstanding_paise)}) we can accept "
-            f"{n} installments: {rupees(first)} now and the balance over the next {(n - 1) * interval} days. First installment: {{link}}. — {MERCHANT}",
+            f"{n} installments: {rupees(first)} now and the balance over the next {(n - 1) * interval} days. First installment: {{link}}. — {self.merchant}",
         )
-        self._contacted(inv, day, text)
+        self._contacted(inv, day, text, action="offer_installment_plan", decision=d)
         return ExecResult(True, Verdict(True, "ok", ""), f"plan offered: {n} x every {interval}d, first {rupees(first)}", contacted=True)
 
     def _offer_discount(self, d: Decision, p: dict, inv: Invoice, day: int) -> ExecResult:
@@ -218,9 +224,9 @@ class Toolbox:
             d.message,
             inv,
             f"Hello {debtor.name}, to close invoice {inv.id} quickly we can offer a {pct:g}% early-settlement discount if paid within 5 days: "
-            f"{rupees(settle)} instead of {rupees(inv.outstanding_paise)}. Pay here: {{link}}. — {MERCHANT}",
+            f"{rupees(settle)} instead of {rupees(inv.outstanding_paise)}. Pay here: {{link}}. — {self.merchant}",
         )
-        self._contacted(inv, day, text)
+        self._contacted(inv, day, text, action="offer_early_settlement_discount", decision=d)
         return ExecResult(True, Verdict(True, "ok", ""), f"{pct:g}% settlement offered ({rupees(settle)})", contacted=True)
 
     def _escalate(self, d: Decision, p: dict, inv: Invoice, day: int) -> ExecResult:

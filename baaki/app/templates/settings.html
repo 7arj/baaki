@@ -1,0 +1,146 @@
+{% extends "base.html" %}{% set nav='settings' %}
+{% block title %}Settings · Baaki{% endblock %}
+{% block body %}
+<div class="head"><div>
+  <h1>Settings</h1>
+  <div class="sub">Guardrails, business details and connections. Changes are audited.</div>
+</div></div>
+
+<div class="split">
+  <div>
+    <div class="card">
+      <h2>The agent</h2>
+      <div class="hint">While the agent is off it never contacts anyone, even if you run it.</div>
+      <form method="post" action="/app/settings/agent">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+        <div class="check">
+          <input type="checkbox" id="agent_enabled" name="agent_enabled" {{ 'checked' if org.agent_enabled }}>
+          <div><label for="agent_enabled">Agent enabled</label>
+            <div class="help">Lets Baaki work your overdue ledger.</div></div>
+        </div>
+        <div class="check">
+          <input type="checkbox" id="approval_required" name="approval_required" {{ 'checked' if org.approval_required }}>
+          <div><label for="approval_required">I approve every message before it's sent</label>
+            <div class="help">Recommended until you've watched it for a week. Turn off for unattended running.</div></div>
+        </div>
+        <div class="field">
+          <label for="llm_provider">Message drafting</label>
+          <select id="llm_provider" name="llm_provider">
+            <option value="rules" {{ 'selected' if org.llm_provider=='rules' }}>Templates only — no LLM, fully deterministic</option>
+            <option value="openai" {{ 'selected' if org.llm_provider=='openai' }}>OpenAI — reads replies, drafts messages</option>
+            <option value="claude" {{ 'selected' if org.llm_provider=='claude' }}>Claude — reads replies, drafts messages</option>
+          </select>
+          <div class="help">If the provider fails, Baaki falls back to templates for that decision and logs it. Your guardrails apply either way.</div>
+        </div>
+        <button class="btn primary" type="submit">Save</button>
+      </form>
+    </div>
+
+    <div class="card">
+      <h2>Guardrails</h2>
+      <div class="hint">The agent is checked against these before every message and every rupee.
+        You can tighten them freely; the limits shown are the loosest Baaki will allow.</div>
+      <form method="post" action="/app/settings/policy">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+        <h3 style="margin:6px 0 10px">Contact</h3>
+        <div class="row3">
+          <div class="field"><label>Earliest hour (IST)</label>
+            <input type="number" name="contact_window_start_hour" value="{{ s.contact_window_start_hour }}" min="6" max="12">
+            <div class="help">6–12</div></div>
+          <div class="field"><label>Latest hour (IST)</label>
+            <input type="number" name="contact_window_end_hour" value="{{ s.contact_window_end_hour }}" min="17" max="21">
+            <div class="help">17–21</div></div>
+          <div class="field"><label>Days between contacts</label>
+            <input type="number" name="min_gap_days_between_contacts" value="{{ s.min_gap_days_between_contacts }}" min="1" max="30">
+            <div class="help">1–30</div></div>
+        </div>
+        <div class="row2">
+          <div class="field"><label>Max contacts per invoice</label>
+            <input type="number" name="max_contacts_per_invoice" value="{{ s.max_contacts_per_invoice }}" min="1" max="12">
+            <div class="help">Then it stops and hands over. 1–12</div></div>
+          <div class="field"><label>Payment link expiry (days)</label>
+            <input type="number" name="max_payment_link_expiry_days" value="{{ s.max_payment_link_expiry_days }}" min="1" max="60">
+            <div class="help">1–60</div></div>
+        </div>
+
+        <h3 style="margin:14px 0 10px">Concessions</h3>
+        <div class="row2">
+          <div class="field"><label>Max settlement discount (%)</label>
+            <input type="number" step="0.5" name="max_early_settlement_discount_pct" value="{{ s.max_early_settlement_discount_pct }}" min="0" max="25">
+            <div class="help">0 disables discounts entirely. 0–25</div></div>
+          <div class="field"><label>Days overdue before a discount</label>
+            <input type="number" name="min_days_overdue_for_discount" value="{{ s.min_days_overdue_for_discount }}" min="0" max="180">
+            <div class="help">0–180</div></div>
+        </div>
+        <div class="row3">
+          <div class="field"><label>Max installments</label>
+            <input type="number" name="max_installments" value="{{ s.max_installments }}" min="2" max="12"></div>
+          <div class="field"><label>Interval (days)</label>
+            <input type="number" name="max_plan_interval_days" value="{{ s.max_plan_interval_days }}" min="7" max="90"></div>
+          <div class="field"><label>First installment (% min)</label>
+            <input type="number" step="1" name="min_first_installment_pct" value="{{ s.min_first_installment_pct }}" min="5" max="100"></div>
+        </div>
+        <div class="field" style="max-width:280px"><label>Minimum partial payment (%)</label>
+          <input type="number" step="1" name="min_partial_payment_pct" value="{{ s.min_partial_payment_pct }}" min="1" max="100"></div>
+
+        <button class="btn primary" type="submit">Save guardrails</button>
+        <p class="muted small" style="margin-top:10px">Prohibited language — threats, references to police,
+          family or employers, legal ultimatums — is blocked unconditionally and cannot be turned off.</p>
+      </form>
+    </div>
+  </div>
+
+  <div>
+    <div class="card">
+      <h2>Business details</h2>
+      <div class="hint">Used in the reminders your customers receive.</div>
+      <form method="post" action="/app/settings/profile">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+        <div class="field"><label for="legal_name">Name shown to customers</label>
+          <input id="legal_name" name="legal_name" value="{{ org.legal_name or org.name }}"></div>
+        <div class="field"><label for="reply_to_email">Reply-to email</label>
+          <input id="reply_to_email" name="reply_to_email" type="email" value="{{ org.reply_to_email }}"></div>
+        <div class="field"><label for="support_phone">Contact number</label>
+          <input id="support_phone" name="support_phone" value="{{ org.support_phone }}"></div>
+        <button class="btn primary" type="submit">Save</button>
+      </form>
+    </div>
+
+    <div class="card">
+      <h2>Razorpay</h2>
+      <div class="hint">Used to create payment links your customers pay on. Secrets are encrypted at rest
+        and never shown again. Test-mode keys only.</div>
+      <form method="post" action="/app/settings/razorpay">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+        <div class="field"><label for="key_id">Key ID</label>
+          <input id="key_id" name="key_id" placeholder="rzp_test_…" value="{{ org.rzp_key_id or '' }}"></div>
+        <div class="field"><label for="key_secret">Key secret</label>
+          <input id="key_secret" name="key_secret" type="password" placeholder="{{ 'stored — leave blank to keep' if rzp_secret_set else 'not set' }}">
+        </div>
+        <div class="field"><label for="webhook_secret">Webhook secret</label>
+          <input id="webhook_secret" name="webhook_secret" type="password" placeholder="{{ 'stored — leave blank to keep' if org.rzp_webhook_secret_enc else 'not set' }}">
+          <div class="help">Point a Razorpay webhook at<br><code>/webhooks/razorpay/{{ org.slug }}</code></div>
+        </div>
+        <button class="btn primary" type="submit">Save credentials</button>
+      </form>
+      {% if not org.rzp_key_id %}
+      <div class="banner info" style="margin:14px 0 0"><span class="ico">i</span><div>
+        No keys connected — Baaki runs in sandbox and generates simulated links so you can test the flow safely.
+      </div></div>
+      {% endif %}
+    </div>
+
+    <div class="card">
+      <h2>Audit integrity</h2>
+      <div class="hint">Every action is hash-chained. Any edit or deletion breaks the chain.</div>
+      <div class="banner {{ 'ok' if chain_ok else 'err' }}" style="margin:0">
+        <span class="ico">{{ '✓' if chain_ok else '!' }}</span><div>{{ chain_msg }}</div>
+      </div>
+      <div class="btn-row" style="margin-top:12px">
+        <a class="btn" href="/app/audit">View audit log</a>
+        <a class="btn ghost" href="/app/audit/export.jsonl">Export JSONL</a>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}

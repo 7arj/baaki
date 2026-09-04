@@ -1,0 +1,93 @@
+{% extends "base.html" %}{% set nav='approvals' %}{% set pending_count=msgs|length %}
+{% block title %}Approvals · Baaki{% endblock %}
+{% block body %}
+<div class="head">
+  <div>
+    <h1>Approvals</h1>
+    <div class="sub">Nothing reaches a customer until you release it. Edit any message before sending.</div>
+  </div>
+  {% if msgs %}
+  <div class="actions">
+    <form method="post" action="/app/approvals/approve-all" style="margin:0"
+          onsubmit="return confirm('Send all {{ msgs|length }} messages as written?')">
+      <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+      <button class="btn primary" type="submit">Approve all {{ msgs|length }}</button>
+    </form>
+  </div>
+  {% endif %}
+</div>
+
+{% if not org.approval_required %}
+<div class="banner info"><span class="ico">i</span><div>
+  Auto-send is on, so messages go out without stopping here.
+  <a href="/app/settings">Turn approvals back on →</a>
+</div></div>
+{% endif %}
+
+{% for m in msgs %}
+{% set inv = invs.get(m.invoice_id) %}
+<div class="card">
+  <div class="head" style="margin-bottom:12px">
+    <div>
+      <h2>{% if inv %}<a href="/app/invoices/{{ inv.id }}">{{ inv.number }}</a> · {{ custs[inv.customer_id].name if inv.customer_id in custs else '' }}{% endif %}</h2>
+      <div class="sub">
+        {% if inv %}{{ inv.outstanding_paise|inr }} outstanding · due {{ inv.due_on|ago }} · {% endif %}
+        to {{ m.to_address or 'no address on file' }}
+      </div>
+    </div>
+    <div class="actions">
+      <span class="pill">{{ m.action.replace('_',' ') }}</span>
+      <span class="pill">decided by {{ m.decided_by }}</span>
+    </div>
+  </div>
+
+  {% if m.rationale %}
+  <div class="banner info" style="margin-bottom:12px"><span class="ico">i</span>
+    <div><b>Why this action:</b> {{ m.rationale }}</div></div>
+  {% endif %}
+
+  <form method="post" action="/app/approvals/{{ m.id }}">
+    <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+    <div class="field">
+      <label for="b{{ m.id }}">Message</label>
+      <textarea id="b{{ m.id }}" name="body" style="min-height:130px">{{ m.body }}</textarea>
+      <div class="help">Edits are recorded in the audit trail alongside the original.</div>
+    </div>
+    <div class="btn-row">
+      <button class="btn primary" type="submit" name="verdict" value="approve">Approve &amp; send</button>
+      <button class="btn danger" type="submit" name="verdict" value="reject">Reject</button>
+      {% if inv %}<a class="btn ghost" href="/app/invoices/{{ inv.id }}">Open invoice</a>{% endif %}
+    </div>
+  </form>
+</div>
+{% else %}
+<div class="card empty">
+  <h2>Nothing waiting</h2>
+  <p>When the agent drafts a message it will appear here for your approval.</p>
+  <form method="post" action="/app/run" style="display:inline">
+    <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+    <button class="btn primary" type="submit">Run agent now</button>
+  </form>
+</div>
+{% endfor %}
+
+{% if recent %}
+<div class="card">
+  <h2>Recently handled</h2>
+  <table>
+    <thead><tr><th>Invoice</th><th>Action</th><th>Status</th><th>When</th><th>Message</th></tr></thead>
+    <tbody>
+    {% for m in recent %}
+    <tr>
+      <td>{% if m.invoice_id in invs %}<a href="/app/invoices/{{ m.invoice_id }}">{{ invs[m.invoice_id].number }}</a>{% endif %}</td>
+      <td class="dim small">{{ m.action.replace('_',' ') }}</td>
+      <td><span class="pill">{{ m.status }}</span>{% if m.last_error %}<div class="muted small">{{ m.last_error[:60] }}</div>{% endif %}</td>
+      <td class="dim small">{{ m.created_at|ago }}</td>
+      <td class="dim small">{{ m.body[:70] }}…</td>
+    </tr>
+    {% endfor %}
+    </tbody>
+  </table>
+</div>
+{% endif %}
+{% endblock %}
