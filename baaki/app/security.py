@@ -23,6 +23,7 @@ from .models import Org, Session as SessionRow, User, utcnow
 
 SESSION_COOKIE = "baaki_session"
 CSRF_COOKIE = "baaki_csrf"
+INVITE_COOKIE = "baaki_invite"
 SESSION_TTL = timedelta(days=14)
 
 # scrypt parameters — ~100ms per hash on a laptop, which is the point.
@@ -142,6 +143,19 @@ class Principal:
 
 
 def _load_principal(request: Request, db: DBSession) -> Principal | None:
+    # Clerk owns identity when it is configured; the local session cookie is the fallback so the
+    # app still works with no third-party account.
+    from . import clerk_auth
+
+    if clerk_auth.enabled():
+        claims = clerk_auth.verify(request)
+        if claims:
+            user = clerk_auth.provision(db, claims, request.cookies.get(INVITE_COOKIE))
+            if user and not user.disabled:
+                org = db.get(Org, user.org_id)
+                return Principal(user, org) if org else None
+            return None
+
     token = request.cookies.get(SESSION_COOKIE)
     if not token:
         return None
@@ -152,7 +166,7 @@ def _load_principal(request: Request, db: DBSession) -> Principal | None:
     if expires < utcnow():
         return None
     user = db.get(User, row.user_id)
-    if not user:
+    if not user or user.disabled:
         return None
     org = db.get(Org, user.org_id)
     return Principal(user, org) if org else None

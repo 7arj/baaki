@@ -1,0 +1,22 @@
+{# Clerk's hosted sign-in / sign-up widget. Mounted only when CLERK_PUBLISHABLE_KEY is set;
+   the local password forms render instead when it is not. #}
+<script>
+  window.__clerkFrontendApi = atob("{{ clerk_key.split('_')[2] }}").replace(/\$$/, "");
+</script>
+<script async crossorigin="anonymous" id="clerk-js"></script>
+<script>
+  (function () {
+    var s = document.getElementById("clerk-js");
+    s.setAttribute("data-clerk-publishable-key", "{{ clerk_key }}");
+    s.src = "https://" + window.__clerkFrontendApi + "/npm/@clerk/clerk-js@5/dist/clerk.browser.js";
+    s.addEventListener("load", async function () {
+      await window.Clerk.load({ afterSignInUrl: "/app", afterSignUpUrl: "/app" });
+      var mount = document.getElementById("clerk-mount");
+      if (!mount) return;
+      var opts = { afterSignInUrl: "/app", afterSignUpUrl: "/app",
+                   appearance: { variables: { colorPrimary: "#2a78d6", borderRadius: "7px" } } };
+      if (window.__clerkMode === "sign-up") window.Clerk.mountSignUp(mount, opts);
+      else window.Clerk.mountSignIn(mount, opts);
+    });
+  })();
+</script>

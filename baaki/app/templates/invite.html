@@ -1,4 +1,9 @@
 {% extends "base.html" %}{% block title %}Join {{ org_name }} on Baaki{% endblock %}
+
+{% block foot %}{% if clerk_enabled %}
+{% include "_clerk.html" %}
+<script>window.__clerkMode = "sign-up";</script>
+{% endif %}{% endblock %}
 {% block body %}
 <div class="auth">
   <a class="brand" href="/" style="justify-content:center;margin-bottom:18px"><span class="dot"></span>Baaki</a>
@@ -7,6 +12,12 @@
     <p class="muted small" style="margin-bottom:20px">
       You've been invited as {{ invite.role.value }} for <b>{{ invite.email }}</b>. Choose a password to accept.
     </p>
+    {% if clerk_enabled %}
+    <div id="clerk-mount" style="min-height:400px"></div>
+    <p class="muted small" style="text-align:center;margin-top:12px">
+      Sign in with the address this invitation was sent to.
+    </p>
+    {% else %}
     <form method="post" action="/invite">
       <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
       <input type="hidden" name="token" value="{{ token }}">
@@ -18,6 +29,7 @@
       </div>
       <button class="btn primary lg" type="submit" style="width:100%;justify-content:center">Accept invitation</button>
     </form>
+    {% endif %}
   </div>
 </div>
 {% endblock %}

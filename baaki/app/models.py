@@ -81,6 +81,11 @@ class Org(SQLModel, table=True):
     rzp_key_secret_enc: Optional[str] = None
     rzp_webhook_secret_enc: Optional[str] = None
 
+    # False for orgs provisioned by an identity provider, which knows a person's name but not
+    # their business name. The app gates on this until the owner supplies one, because the org
+    # name is what customers see on reminders.
+    onboarding_complete: bool = True
+
     # Agent control
     agent_enabled: bool = False
     approval_required: bool = True   # human approves each outbound until the merchant trusts it
@@ -99,7 +104,10 @@ class User(SQLModel, table=True):
     org_id: int = Field(foreign_key="orgs.id", index=True)
     email: str = Field(index=True)
     name: str = ""
-    password_hash: str
+    # Null for users who only ever sign in through Clerk: there is no local credential to store.
+    password_hash: Optional[str] = None
+    clerk_user_id: Optional[str] = Field(default=None, index=True, unique=True)
+    avatar_url: str = ""
     role: Role = Field(default=Role.OWNER)
     email_verified_at: Optional[datetime] = None
     disabled: bool = False

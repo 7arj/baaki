@@ -22,8 +22,12 @@
   </nav>
   <div class="spacer"></div>
   <div class="who">
+    {% if principal.user.avatar_url %}
+    <img src="{{ principal.user.avatar_url }}" alt="" width="24" height="24"
+         style="border-radius:50%;display:block">
+    {% endif %}
     <span>{{ principal.user.email }}</span>
-    <form method="post" action="/logout" style="margin:0">
+    <form method="post" action="/logout" style="margin:0" id="signout-form">
       <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
       <button class="btn ghost sm" type="submit">Sign out</button>
     </form>
@@ -46,5 +50,27 @@
   {% block body %}{% endblock %}
 </main>
 {% block foot %}{% endblock %}
+{% if principal and clerk_enabled %}
+<script async crossorigin="anonymous" id="clerk-js-app"
+        data-clerk-publishable-key="{{ clerk_key }}"></script>
+<script>
+  // Signing out locally must also end the Clerk session, or the next request re-authenticates.
+  (function () {
+    var s = document.getElementById("clerk-js-app");
+    s.src = "https://" + atob("{{ clerk_key.split('_')[2] }}").replace(/\$$/, "") +
+            "/npm/@clerk/clerk-js@5/dist/clerk.browser.js";
+    s.addEventListener("load", function () {
+      window.Clerk.load().then(function () {
+        var form = document.getElementById("signout-form");
+        if (!form) return;
+        form.addEventListener("submit", function (e) {
+          e.preventDefault();
+          window.Clerk.signOut().finally(function () { form.submit(); });
+        }, { once: true });
+      });
+    });
+  })();
+</script>
+{% endif %}
 </body>
 </html>

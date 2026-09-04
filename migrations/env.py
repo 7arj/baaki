@@ -26,8 +26,11 @@ def run_migrations_online() -> None:
     # The caller (baaki.app.db.init_db) passes its own engine so migrations run against the
     # database the app actually opened — not whatever DATABASE_URL happens to say. Falling back
     # to the configured URL keeps the plain `alembic` CLI working.
+    # The caller (baaki.app.db.init_db) passes an engine with SQLite foreign-key enforcement
+    # already off, because batch_alter_table drops and recreates referenced tables. The plain
+    # `alembic` CLI gets an equivalent engine built here.
     connectable = config.attributes.get("engine") or make_engine(
-        config.get_main_option("sqlalchemy.url") or database_url()
+        config.get_main_option("sqlalchemy.url") or database_url(), foreign_keys=False
     )
     with connectable.connect() as connection:
         context.configure(

@@ -22,7 +22,13 @@ def database_url() -> str:
     return f"sqlite:///{DEFAULT_PATH}"
 
 
-def make_engine(url: str | None = None, echo: bool = False):
+def make_engine(url: str | None = None, echo: bool = False, foreign_keys: bool = True):
+    """`foreign_keys=False` is for migrations only.
+
+    SQLite emulates ALTER by rebuilding a table (create, copy, DROP, rename), and dropping a
+    table that others reference fails while enforcement is on. PRAGMA is a no-op inside a
+    transaction, so it has to be set at connect time rather than mid-run.
+    """
     url = url or database_url()
     kwargs: dict = {"echo": echo}
     if url.startswith("sqlite"):
@@ -37,7 +43,7 @@ def make_engine(url: str | None = None, echo: bool = False):
         @event.listens_for(eng, "connect")
         def _pragmas(dbapi_conn, _):
             cur = dbapi_conn.cursor()
-            cur.execute("PRAGMA foreign_keys=ON")
+            cur.execute(f"PRAGMA foreign_keys={'ON' if foreign_keys else 'OFF'}")
             cur.execute("PRAGMA journal_mode=WAL")  # concurrent reads while the worker writes
             cur.close()
 
@@ -82,7 +88,9 @@ def init_db(eng=None) -> str:
         current = MigrationContext.configure(conn).get_current_revision()
         has_tables = conn.dialect.has_table(conn, "orgs")
 
-    cfg = _alembic_config(eng)
+    # Migrations run on their own connection with enforcement off; the app's engine keeps it on.
+    migration_eng = make_engine(str(eng.url), foreign_keys=False) if eng.url.get_backend_name() == "sqlite" else eng
+    cfg = _alembic_config(migration_eng)
     if not has_tables:
         SQLModel.metadata.create_all(eng)
         command.stamp(cfg, "head")

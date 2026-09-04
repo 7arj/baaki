@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import json
+import os
 import re
 from datetime import date, datetime, timedelta
 from pathlib import Path
@@ -15,7 +16,7 @@ from sqlmodel import Session as DBSession, func, select
 
 from ..domain import rupees
 from ..razorpay_client import verify_webhook
-from . import accounts, billing as billing_mod
+from . import accounts, billing as billing_mod, clerk_auth
 from .db import get_session, init_db
 from .models import (
     AuditRow, Customer, Event, InvoiceRow, Org, Outbox, OutboxStatus, PaymentRow,
@@ -23,7 +24,7 @@ from .models import (
 )
 from .models import Session as SessionRow
 from .security import (
-    CSRF_COOKIE, SESSION_COOKIE, Principal, create_session, current_principal, encrypt_secret,
+    CSRF_COOKIE, INVITE_COOKIE, SESSION_COOKIE, Principal, create_session, current_principal, encrypt_secret,
     hash_password, issue_csrf, mask, optional_principal, password_problem, require_csrf,
     revoke_session, set_session_cookie, verify_password,
 )
@@ -53,6 +54,7 @@ def render(request: Request, name: str, principal: Principal | None = None, **ct
     csrf = request.cookies.get(CSRF_COOKIE)
     resp = templates.TemplateResponse(request, name, {
         "principal": principal, "org": principal.org if principal else None,
+        "clerk_enabled": clerk_auth.enabled(), "clerk_key": clerk_auth.publishable_key(),
         "csrf_token": csrf or "", "ok": request.query_params.get("ok"),
         "err": request.query_params.get("err"), "entitlement": billing_mod.entitlement_problem(principal.org) if principal else None,
         **ctx,
@@ -60,6 +62,14 @@ def render(request: Request, name: str, principal: Principal | None = None, **ct
     if not csrf:
         issue_csrf(resp)
     return resp
+
+
+def require_onboarded(p: Principal = Depends(current_principal)) -> Principal:
+    """An org provisioned by an identity provider has no business name yet, and the org name is
+    what customers see on reminders. Everything is blocked until one is supplied."""
+    if not p.org.onboarding_complete:
+        raise HTTPException(307, "/app/welcome")
+    return p
 
 
 def require_owner(p: Principal) -> None:
@@ -248,7 +258,13 @@ def invite_form(token: str, request: Request, db: DBSession = Depends(get_sessio
     if not row:
         return redirect("/login", err="That invitation has expired or was already used.")
     org = db.get(Org, row.org_id)
-    return render(request, "invite.html", token=token, invite=row, org_name=org.name if org else "")
+    resp = render(request, "invite.html", token=token, invite=row, org_name=org.name if org else "")
+    if clerk_auth.enabled():
+        # Provisioning reads this on the first authenticated request and joins that org instead
+        # of creating a new one. Short-lived, and consumed once the invite is redeemed.
+        resp.set_cookie(INVITE_COOKIE, token, httponly=True, samesite="lax", max_age=1800,
+                        secure=os.environ.get("BAAKI_ENV") == "production", path="/")
+    return resp
 
 
 @router.post("/invite")
@@ -282,6 +298,7 @@ def logout(request: Request, db: DBSession = Depends(get_session), csrf_token: s
         revoke_session(db, token)
     resp = redirect("/", ok="Signed out.")
     resp.delete_cookie(SESSION_COOKIE, path="/")
+    resp.delete_cookie(INVITE_COOKIE, path="/")
     return resp
 
 
@@ -312,8 +329,30 @@ def _totals(db: DBSession, org_id: int) -> dict:
     }
 
 
+@router.get("/app/welcome", response_class=HTMLResponse)
+def welcome(request: Request, p: Principal = Depends(current_principal)):
+    if p.org.onboarding_complete:
+        return redirect("/app")
+    return render(request, "welcome.html", p)
+
+
+@router.post("/app/welcome")
+def save_welcome(request: Request, p: Principal = Depends(current_principal), db: DBSession = Depends(get_session),
+                 company: str = Form(...), csrf_token: str = Form("")):
+    require_csrf(request, csrf_token)
+    company = company.strip()
+    if len(company) < 2:
+        return redirect("/app/welcome", err="Please enter your business name.")
+    p.org.name = p.org.legal_name = company
+    p.org.onboarding_complete = True
+    db.add(p.org)
+    DbAudit(db, p.org_id, actor=f"user:{p.user.id}").record("org_onboarded", name=company)
+    db.commit()
+    return redirect("/app/import", ok=f"Welcome, {company}. Import your overdue invoices to begin.")
+
+
 @router.get("/app", response_class=HTMLResponse)
-def dashboard(request: Request, p: Principal = Depends(current_principal), db: DBSession = Depends(get_session)):
+def dashboard(request: Request, p: Principal = Depends(require_onboarded), db: DBSession = Depends(get_session)):
     t = _totals(db, p.org_id)
     pending = db.exec(select(func.count(Outbox.id)).where(Outbox.org_id == p.org_id, Outbox.status == OutboxStatus.PENDING_APPROVAL)).one()
     recent = db.exec(select(Event).where(Event.org_id == p.org_id).order_by(Event.at.desc()).limit(12)).all()
@@ -328,7 +367,7 @@ def dashboard(request: Request, p: Principal = Depends(current_principal), db: D
 # Ledger
 # ============================================================================================
 @router.get("/app/invoices", response_class=HTMLResponse)
-def invoices(request: Request, p: Principal = Depends(current_principal), db: DBSession = Depends(get_session),
+def invoices(request: Request, p: Principal = Depends(require_onboarded), db: DBSession = Depends(get_session),
              status: str = "all", q: str = ""):
     stmt = select(InvoiceRow).where(InvoiceRow.org_id == p.org_id)
     if status != "all":
@@ -395,7 +434,7 @@ def stop_invoice(invoice_id: int, request: Request, p: Principal = Depends(curre
 # Import
 # ============================================================================================
 @router.get("/app/import", response_class=HTMLResponse)
-def import_form(request: Request, p: Principal = Depends(current_principal), db: DBSession = Depends(get_session)):
+def import_form(request: Request, p: Principal = Depends(require_onboarded), db: DBSession = Depends(get_session)):
     count = db.exec(select(func.count(InvoiceRow.id)).where(InvoiceRow.org_id == p.org_id)).one()
     return render(request, "import.html", p, count=count, sample=SAMPLE_CSV)
 
@@ -784,6 +823,18 @@ async def razorpay_webhook(slug: str, request: Request, db: DBSession = Depends(
     return {"status": "ok", "invoice": row.number, "credited_paise": credited}
 
 
+@router.post("/webhooks/clerk")
+async def clerk_webhook(request: Request, db: DBSession = Depends(get_session)):
+    secret = os.environ.get("CLERK_WEBHOOK_SECRET")
+    if not secret:
+        raise HTTPException(503, "Clerk webhooks are not configured")
+    body = await request.body()
+    if not clerk_auth.verify_webhook(body, request.headers, secret):
+        raise HTTPException(400, "invalid signature")
+    result = clerk_auth.apply_webhook(db, json.loads(body))
+    return {"status": result}
+
+
 # ============================================================================================
 # Ops
 # ============================================================================================
@@ -821,6 +872,10 @@ def create_app() -> FastAPI:
     async def on_http_error(request: Request, exc: HTTPException):
         if exc.status_code == 401:
             return RedirectResponse("/login?err=Please+sign+in+to+continue.", status_code=303)
+        # A dependency that needs to send the user elsewhere (the onboarding gate) raises a
+        # redirect rather than returning one, since dependencies cannot short-circuit a response.
+        if exc.status_code in (303, 307) and isinstance(exc.detail, str) and exc.detail.startswith("/"):
+            return RedirectResponse(exc.detail, status_code=303)
         if request.headers.get("accept", "").startswith("application/json"):
             return Response(json.dumps({"detail": exc.detail}), exc.status_code, media_type="application/json")
         return templates.TemplateResponse(request, "error.html",

@@ -1,10 +1,18 @@
 {% extends "base.html" %}{% block title %}Create your Baaki account{% endblock %}
+
+{% block foot %}{% if clerk_enabled %}
+{% include "_clerk.html" %}
+<script>window.__clerkMode = "sign-up";</script>
+{% endif %}{% endblock %}
 {% block body %}
 <div class="auth">
   <a class="brand" href="/" style="justify-content:center;margin-bottom:18px"><span class="dot"></span>Baaki</a>
   <div class="card">
     <h1>Start your free trial</h1>
     <p class="muted small" style="margin-bottom:20px">14 days, no card. You'll import a ledger next.</p>
+    {% if clerk_enabled %}
+    <div id="clerk-mount" style="min-height:400px"></div>
+    {% else %}
     <form method="post" action="/signup">
       <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
       <div class="field">
@@ -22,6 +30,7 @@
       <button class="btn primary lg" type="submit" style="width:100%;justify-content:center">Create account</button>
     </form>
     <div class="alt">Already have an account? <a href="/login">Sign in</a></div>
+    {% endif %}
   </div>
 </div>
 {% endblock %}
