@@ -1,140 +1,121 @@
 # Baaki as a product
 
-The buildathon submission is a measured simulation ([README](README.md)). This document covers the
-layer that turns it into something a merchant can sign up for and pay for: multi-tenant persistence,
-authentication, a human approval workflow, per-org guardrails, subscription billing and an operator UI.
+The submission is a measured simulation ([README](README.md)). This is the layer that makes it
+something a merchant can sign up for and pay for.
 
 ```bash
-uv run python -m baaki demo     # seed a tenant with a realistic ledger, payments and escalations
-uv run python -m baaki app      # http://127.0.0.1:8080 → sign in as demo@baaki.app / baaki-demo-2026
+uv run python -m baaki demo     # seed a tenant with a realistic ledger
+uv run python -m baaki app      # http://127.0.0.1:8080 · demo@baaki.app / baaki-demo-2026
 ```
 
-The simulation is untouched and still runs: `uv run python -m baaki run --demo-faults`.
+The simulation is untouched and still runs.
 
-## What a merchant actually does
+## What a merchant does
 
-1. **Sign up** — business name, email, password. A 14-day trial starts; no card.
-2. **Import a ledger** — CSV out of Tally/Zoho/Excel. The whole file is validated first: one bad row
-   and nothing is imported, with the offending row numbers returned. (A half-imported ledger is worse
-   than none — the agent would chase invoices that don't reconcile.)
-3. **Set the guardrails** — contact window, gap between contacts, contact cap, discount ceiling and
-   ageing, installment limits. Tighten freely; the form refuses to loosen past defensible limits, and
-   prohibited language can't be switched off at all.
-4. **Turn the agent on** — with *"I approve every message"* on by default.
-5. **Review the approval queue** — each drafted message shows the invoice, the action, who decided it
-   (templates, OpenAI or Claude) and *why*. Edit before sending; edits are audited against the original.
-6. **Watch money arrive** — Razorpay payment-link webhooks credit invoices idempotently.
-7. **Handle the exception list** — disputes, hardship and cease requests the agent deliberately
-   stopped on, largest first, with the customer's own words.
-8. **Turn approvals off** once it's trusted, and let `baaki worker` run it from cron.
+1. **Sign up.** Business name, email, password. 14-day trial, no card.
+2. **Import a ledger.** CSV out of Tally, Zoho or Excel. The whole file is validated first: one bad
+   row and nothing is imported, with the offending row numbers returned. A half-imported ledger is
+   worse than none.
+3. **Set guardrails.** Contact window, gap, cap, discount ceiling and ageing, installment limits.
+   Tighten freely; the form refuses to loosen past defensible limits, and prohibited language cannot
+   be switched off.
+4. **Turn the agent on**, with "I approve every message" on by default.
+5. **Review the approval queue.** Each drafted message shows the invoice, the action, who decided it
+   and why. Edit before sending; edits are audited against the original.
+6. **Watch money arrive.** Payment-link webhooks credit invoices idempotently.
+7. **Work the exception list.** Disputes, hardship and cease requests the agent stopped on, largest
+   first, with the customer's own words.
+8. **Turn approvals off** once it is trusted, and let `baaki worker` run from cron.
 
-## The parts that make it a product, not a demo
+## What makes it a product
 
-**Multi-tenancy.** Every business row carries `org_id`, and there are no ORM relationships anywhere —
-each read states its tenancy filter explicitly, so a missing one is a visible omission at the call
-site rather than a silent lazy-load. Object reads re-check ownership before returning
-(`baaki/app/web.py` — `if not row or row.org_id != p.org_id: 404`). Covered by
-`test_one_org_cannot_read_anothers_invoice`.
+**Multi-tenancy.** Every business row carries `org_id` and there are no ORM relationships, so each
+read states its tenancy filter explicitly and a missing one is visible at the call site. Object
+reads re-check ownership before returning.
 
-**Auth.** scrypt password hashing (stdlib, memory-hard, ~100 ms/hash). Opaque server-side session
-tokens in an httponly/SameSite=Lax cookie — revocable on sign-out, unlike a stateless JWT.
-Double-submit CSRF on every mutating form. Login failures are indistinguishable between "no such
-account" and "wrong password", and the no-account branch still burns a hash so timing doesn't leak
-either. Sign-in attempts are throttled per email (6) and per IP (20) in a 15-minute window, counted
-in the database so the limit holds across workers; a success clears the counter. Email verification
-and password reset use single-use expiring tokens stored only as SHA-256 — a database leak hands
-over no live links — and a password reset revokes every other session, because a reset is how you
-evict an intruder. **The agent cannot be switched on until the owner's email is confirmed**; we
-won't contact a merchant's customers on behalf of an unverified account.
+**Auth.** scrypt passwords. Opaque server-side session tokens in an httponly SameSite=Lax cookie,
+revocable on sign-out. Double-submit CSRF on every mutating form. Login failures are
+indistinguishable between "no such account" and "wrong password", and the no-account branch still
+burns a hash so timing does not leak either. Attempts are throttled per email (6) and per IP (20)
+per 15 minutes, counted in the database so limits hold across workers.
 
-**Teams and roles.** Owners manage billing, credentials, guardrails and the team; members work the
-ledger, approvals and audit. Invitations expire in 7 days and can be revoked before use. An org
-can't lose its last active owner, and disabling someone revokes their live sessions immediately
-rather than letting them finish the session.
+Email verification and password reset use single-use expiring tokens stored only as SHA-256, so a
+database leak hands over no live links. A reset revokes every other session. **The agent cannot be
+switched on until the owner's email is confirmed**, because we will not contact a merchant's
+customers on behalf of an unverified account.
 
-**Secrets.** A merchant's Razorpay key secret and webhook secret are Fernet-encrypted at rest and
-never rendered back. Live keys (`rzp_live_…`) are refused outright. Set `BAAKI_SECRET_KEY` in
-production — there is a derived dev fallback so nothing breaks locally, and it is clearly marked.
+**Teams.** Owners manage billing, credentials, guardrails and the team. Members work the ledger,
+approvals and audit. Invitations expire in 7 days and can be revoked. An org cannot lose its last
+active owner, and disabling someone revokes their live sessions immediately.
 
-**Approval workflow.** Nothing reaches a customer without passing the policy gate *and*, by default,
-a human. The Outbox is both the approval queue and the delivery retry queue: a message is persisted
-before any send is attempted, retried up to 5 times, and `sent_at` prevents a double-send.
+**Secrets.** Merchant Razorpay secrets are Fernet-encrypted at rest and never rendered back. Live
+keys are refused outright. Set `BAAKI_SECRET_KEY` in production; there is a marked dev fallback.
 
-**Billing.** Razorpay Subscriptions — Baaki bills merchants on the same rails it helps them collect
-on. Plan limits are enforced at import time. A cancelled subscription disables the agent immediately:
-we stop acting on a merchant's behalf the moment they stop paying, while their ledger and audit trail
-stay exportable.
+**Approval workflow.** Nothing reaches a customer without passing the policy gate and, by default, a
+human. The Outbox is both the approval queue and the delivery retry queue: persisted before any send
+is attempted, retried up to five times, with `sent_at` preventing a double-send.
 
-**Audit.** Hash-chained per org, in the database, covering agent decisions, policy verdicts, Razorpay
-calls, payments, message approvals and edits, policy changes and credential updates. Verifiable from
-the Settings page and exportable as JSONL.
+**Delivery.** WhatsApp first when configured and the customer has a number, otherwise email.
+Business-initiated WhatsApp messages must use a Meta-approved template, so the reminder is passed as
+template parameters rather than free text. Permanent failures such as a malformed number fail
+immediately instead of burning five retries.
 
-**Delivery.** WhatsApp first when it's configured and the customer has a number — it's where Indian
-B2B collections actually happen — otherwise email. Business-initiated WhatsApp messages must use a
-Meta-approved template, so the reminder is passed as template parameters rather than free text; the
-adapter is honest about that rather than pretending free-form sending works. Permanent failures (a
-malformed number, a rejected template) fail immediately instead of burning five retries on
-something that will never succeed.
+**Billing.** Razorpay Subscriptions, the same rails Baaki helps merchants collect on. Plan limits
+are enforced at import. A cancelled subscription disables the agent immediately, while the ledger
+and audit trail stay exportable.
 
-**Schema migrations.** Alembic, with `render_as_batch` so SQLite can alter columns. `baaki migrate`
-creates, adopts or upgrades: a fresh database is built from the models and stamped at head, a
-pre-Alembic database from an earlier build is adopted at head rather than wrecked, and an existing
-one is upgraded. A test walks the whole chain up, down to base, and up again — a migration that
-can't be reversed is a trap.
+**Risk scores that admit ignorance.** Four of six features describe how a customer paid previously.
+On a fresh ledger there is none, the model collapses to its bias term, and a uniform number
+presented as a prediction is worse than none. So it returns `None`, the UI shows a dash, and work is
+ranked by outstanding times ageing. Once an org has 40+ settled invoices with 8+ late ones,
+**Settings, Refit on my ledger** fits on their own payers, split by customer so nobody teaches and
+grades, and shows held-out precision and recall next to the button.
 
-**Operations.** `baaki worker` runs the daily pass for every eligible org and flushes the outbox —
-point cron at it. It takes a per-org advisory lock so two workers can't double-send, reclaims stale
-locks from a crashed run, and prunes expired throttle rows. `/healthz` for liveness. SQLite by
-default (a merchant can self-host with zero infrastructure) with WAL enabled;
-`DATABASE_URL=postgresql://…` switches to Postgres unchanged.
+**Migrations.** Alembic with batch mode for SQLite. `baaki migrate` creates and stamps a fresh
+database, adopts a pre-Alembic one rather than wrecking it, or upgrades. A test walks the chain up,
+down to base, and up again.
+
+**Audit.** Hash-chained per org, covering decisions, policy verdicts, Razorpay calls, payments,
+message approvals and edits, policy changes and credential updates. Verifiable in Settings,
+exportable as JSONL.
+
+**Operations.** `baaki worker` runs the daily pass for every eligible org and flushes the outbox.
+It takes a per-org advisory lock so two workers cannot double-send, reclaims stale locks, and prunes
+expired throttle rows. `/healthz` for liveness. SQLite by default with WAL, or
+`DATABASE_URL=postgresql://...`.
 
 ## One policy engine, not two
 
-The engine converts database rows to the same `domain.Invoice` the simulation uses, runs them through
-the **same** `Policy`, `Toolbox` and brains, and writes the results back. There is no "demo" policy and
-"real" policy that could drift apart — `baaki/app/service.py` imports from `baaki.policy` and
-`baaki.tools` directly. The only additions to the core were an optional outbound-message hook and a
-per-instance merchant name, both of which the simulation leaves at their defaults.
+The engine converts database rows to the same `domain.Invoice` the simulation uses, runs them
+through the same `Policy`, `Toolbox` and brains, and writes back. There is no demo policy and real
+policy that could drift apart. The only core additions were an optional outbound-message hook and a
+per-instance merchant name.
 
 ## Deploying
 
 ```bash
-export BAAKI_ENV=production          # switches cookies to Secure
+export BAAKI_ENV=production
 export BAAKI_SECRET_KEY="$(openssl rand -base64 32)"
-export DATABASE_URL=postgresql://…   # optional; SQLite otherwise
-export SMTP_HOST=… SMTP_USER=… SMTP_PASSWORD=… SMTP_FROM=…   # optional; console transport otherwise
-export BAAKI_RZP_KEY_ID=… BAAKI_RZP_KEY_SECRET=…             # platform keys, for subscription billing
-export BAAKI_RZP_PLAN_STARTER=plan_… BAAKI_RZP_PLAN_GROWTH=plan_… BAAKI_RZP_PLAN_SCALE=plan_…
+export DATABASE_URL=postgresql://...                        # optional
+export SMTP_HOST=... SMTP_USER=... SMTP_PASSWORD=...        # optional
+export WHATSAPP_PHONE_NUMBER_ID=... WHATSAPP_TOKEN=...      # optional
+export BAAKI_RZP_KEY_ID=... BAAKI_RZP_KEY_SECRET=...        # platform keys for billing
 
+uv run python -m baaki migrate
 uv run uvicorn baaki.app.web:app --host 0.0.0.0 --port 8080
-uv run python -m baaki worker        # from cron, once a day
+uv run python -m baaki worker    # from cron, daily
 ```
 
-Each merchant points a Razorpay webhook at `/webhooks/razorpay/<their-org-slug>`; the signature is
-verified against that org's own secret.
+Each merchant points a Razorpay webhook at `/webhooks/razorpay/<org-slug>`, verified against their
+own secret.
 
-**Risk scores that admit ignorance.** Four of the six features describe how a customer paid
-*previously*. On a freshly imported ledger there is none, the model collapses to its bias term, and
-a uniform number presented as a prediction is worse than none — so it returns `None`, the UI shows
-"—", and work is ranked by outstanding × ageing instead. Once an org has 40+ settled invoices with
-8+ late ones, **Settings → Refit on my ledger** (or `baaki worker --refit`) fits a model on their own
-payers, split by customer so nobody teaches and grades, and shows the held-out precision and recall
-next to the button. Until then the shipped prior from the simulation's held-out run is used.
+## Known gaps
 
-## Honest gaps
-
-Still true, and I'd rather name them than have them found.
-
-- **Subscription billing is sandboxed** unless platform keys are configured, in which case it creates
-  real Razorpay subscriptions. The webhook path that activates and cancels them is implemented and
-  tested against synthetic events; it has not been run against live Razorpay, because that needs a
-  registered business account rather than a test key.
-- **The WhatsApp adapter is untested against live Meta infrastructure** for the same reason — it
-  needs an approved template and a verified business number. Number normalisation, channel
-  selection, and permanent-vs-transient failure handling are tested; the HTTP call is not.
-- **Background work is a cron command with a lock**, not a queue. Fine to a few thousand invoices per
-  org. Beyond that, or for sub-daily cadence, the pass wants a real broker.
-- **No SSO, no audit-log retention policy, no data export beyond the audit JSONL and CSV re-import.**
-  All three are table stakes for the Scale tier as sold and none are built.
-- **One region, one currency.** Amounts are paise and the contact window is IST. Nothing in the
-  policy engine is currency-aware.
+- **Live billing and WhatsApp are untested against production infrastructure.** Both need a
+  registered business account rather than a test key. The logic is tested against synthetic events;
+  the HTTP calls are not.
+- **Background work is a locked cron command, not a queue.** Fine to a few thousand invoices per org.
+- **No SSO, retention policy or bulk export** beyond audit JSONL and CSV re-import. All three are
+  table stakes for the Scale tier as priced.
+- **One region, one currency.** Amounts are paise, the contact window is IST, and the policy engine
+  is not currency-aware.
