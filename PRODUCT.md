@@ -40,7 +40,17 @@ site rather than a silent lazy-load. Object reads re-check ownership before retu
 tokens in an httponly/SameSite=Lax cookie — revocable on sign-out, unlike a stateless JWT.
 Double-submit CSRF on every mutating form. Login failures are indistinguishable between "no such
 account" and "wrong password", and the no-account branch still burns a hash so timing doesn't leak
-either.
+either. Sign-in attempts are throttled per email (6) and per IP (20) in a 15-minute window, counted
+in the database so the limit holds across workers; a success clears the counter. Email verification
+and password reset use single-use expiring tokens stored only as SHA-256 — a database leak hands
+over no live links — and a password reset revokes every other session, because a reset is how you
+evict an intruder. **The agent cannot be switched on until the owner's email is confirmed**; we
+won't contact a merchant's customers on behalf of an unverified account.
+
+**Teams and roles.** Owners manage billing, credentials, guardrails and the team; members work the
+ledger, approvals and audit. Invitations expire in 7 days and can be revoked before use. An org
+can't lose its last active owner, and disabling someone revokes their live sessions immediately
+rather than letting them finish the session.
 
 **Secrets.** A merchant's Razorpay key secret and webhook secret are Fernet-encrypted at rest and
 never rendered back. Live keys (`rzp_live_…`) are refused outright. Set `BAAKI_SECRET_KEY` in
@@ -59,9 +69,24 @@ stay exportable.
 calls, payments, message approvals and edits, policy changes and credential updates. Verifiable from
 the Settings page and exportable as JSONL.
 
+**Delivery.** WhatsApp first when it's configured and the customer has a number — it's where Indian
+B2B collections actually happen — otherwise email. Business-initiated WhatsApp messages must use a
+Meta-approved template, so the reminder is passed as template parameters rather than free text; the
+adapter is honest about that rather than pretending free-form sending works. Permanent failures (a
+malformed number, a rejected template) fail immediately instead of burning five retries on
+something that will never succeed.
+
+**Schema migrations.** Alembic, with `render_as_batch` so SQLite can alter columns. `baaki migrate`
+creates, adopts or upgrades: a fresh database is built from the models and stamped at head, a
+pre-Alembic database from an earlier build is adopted at head rather than wrecked, and an existing
+one is upgraded. A test walks the whole chain up, down to base, and up again — a migration that
+can't be reversed is a trap.
+
 **Operations.** `baaki worker` runs the daily pass for every eligible org and flushes the outbox —
-point cron at it. `/healthz` for liveness. SQLite by default (a merchant can self-host with zero
-infrastructure) with WAL enabled; `DATABASE_URL=postgresql://…` switches to Postgres unchanged.
+point cron at it. It takes a per-org advisory lock so two workers can't double-send, reclaims stale
+locks from a crashed run, and prunes expired throttle rows. `/healthz` for liveness. SQLite by
+default (a merchant can self-host with zero infrastructure) with WAL enabled;
+`DATABASE_URL=postgresql://…` switches to Postgres unchanged.
 
 ## One policy engine, not two
 
@@ -88,25 +113,28 @@ uv run python -m baaki worker        # from cron, once a day
 Each merchant points a Razorpay webhook at `/webhooks/razorpay/<their-org-slug>`; the signature is
 verified against that org's own secret.
 
+**Risk scores that admit ignorance.** Four of the six features describe how a customer paid
+*previously*. On a freshly imported ledger there is none, the model collapses to its bias term, and
+a uniform number presented as a prediction is worse than none — so it returns `None`, the UI shows
+"—", and work is ranked by outstanding × ageing instead. Once an org has 40+ settled invoices with
+8+ late ones, **Settings → Refit on my ledger** (or `baaki worker --refit`) fits a model on their own
+payers, split by customer so nobody teaches and grades, and shows the held-out precision and recall
+next to the button. Until then the shipped prior from the simulation's held-out run is used.
+
 ## Honest gaps
 
-These are real and I'd rather name them than have them found.
+Still true, and I'd rather name them than have them found.
 
-- **No schema migrations.** Tables are created with `create_all`. A second release that changes a
-  column needs Alembic before it can be deployed over existing data.
-- **Risk scores need history.** Four of the model's six features describe how a customer paid
-  *previously*. On a freshly imported ledger there is none, the model collapses to its bias term, and
-  a uniform number presented as a prediction would be worse than none — so it returns `None`, the UI
-  shows "—", and work is ranked by outstanding × ageing until history exists. Per-org refitting is
-  the obvious next step; the weights currently ship as a prior from the simulation's held-out run.
-- **Email only.** WhatsApp is where Indian B2B collections actually happen. The transport interface
-  is there; the WhatsApp Business API adapter is not.
-- **No rate limiting** on login, and no email verification or password reset. Fine behind a trusted
-  proxy for a pilot; not fine on the open internet.
-- **Single-user orgs in practice.** The `Role` enum and `org_id` scoping support teams, but there is
-  no invite flow yet.
 - **Subscription billing is sandboxed** unless platform keys are configured, in which case it creates
   real Razorpay subscriptions. The webhook path that activates and cancels them is implemented and
-  tested; it has not been run against live Razorpay.
-- **Background work is a cron command**, not a queue. Fine to a few thousand invoices per org; beyond
-  that the daily pass wants a real worker with per-org locking.
+  tested against synthetic events; it has not been run against live Razorpay, because that needs a
+  registered business account rather than a test key.
+- **The WhatsApp adapter is untested against live Meta infrastructure** for the same reason — it
+  needs an approved template and a verified business number. Number normalisation, channel
+  selection, and permanent-vs-transient failure handling are tested; the HTTP call is not.
+- **Background work is a cron command with a lock**, not a queue. Fine to a few thousand invoices per
+  org. Beyond that, or for sub-daily cadence, the pass wants a real broker.
+- **No SSO, no audit-log retention policy, no data export beyond the audit JSONL and CSV re-import.**
+  All three are table stakes for the Scale tier as sold and none are built.
+- **One region, one currency.** Amounts are paise and the contact window is IST. Nothing in the
+  policy engine is currency-aware.

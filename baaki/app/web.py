@@ -15,18 +15,20 @@ from sqlmodel import Session as DBSession, func, select
 
 from ..domain import rupees
 from ..razorpay_client import verify_webhook
-from . import billing as billing_mod
+from . import accounts, billing as billing_mod
 from .db import get_session, init_db
 from .models import (
     AuditRow, Customer, Event, InvoiceRow, Org, Outbox, OutboxStatus, PaymentRow,
-    Plan, PolicySettings, Role, SubscriptionStatus, User, utcnow,
+    Plan, PolicySettings, Role, SubscriptionStatus, TokenPurpose, User, utcnow,
 )
+from .models import Session as SessionRow
 from .security import (
     CSRF_COOKIE, SESSION_COOKIE, Principal, create_session, current_principal, encrypt_secret,
     hash_password, issue_csrf, mask, optional_principal, password_problem, require_csrf,
     revoke_session, set_session_cookie, verify_password,
 )
-from .service import DbAudit, ImportError_, RecoveryEngine, SAMPLE_CSV, import_csv, record_payment, verify_chain, work_priority
+from .service import (DbAudit, ImportError_, RecoveryEngine, SAMPLE_CSV, active_model, fit_org_model,
+                      import_csv, record_payment, verify_chain, work_priority)
 from .transports import dispatch_outbox
 
 BASE = Path(__file__).resolve().parent
@@ -58,6 +60,17 @@ def render(request: Request, name: str, principal: Principal | None = None, **ct
     if not csrf:
         issue_csrf(resp)
     return resp
+
+
+def require_owner(p: Principal) -> None:
+    """Billing, team, credentials and guardrails are owner-only; the rest of the app isn't."""
+    if not p.user.role.can_administer:
+        raise HTTPException(403, "Only an owner can change this. Ask the account owner.")
+
+
+def client_ip(request: Request) -> str:
+    fwd = request.headers.get("x-forwarded-for", "")
+    return (fwd.split(",")[0].strip() if fwd else (request.client.host if request.client else ""))[:64]
 
 
 def redirect(url: str, ok: str | None = None, err: str | None = None) -> RedirectResponse:
@@ -114,8 +127,15 @@ def signup(request: Request, db: DBSession = Depends(get_session), company: str 
     DbAudit(db, org.id, actor=f"user:{user.id}").record("org_created", org=org.slug, by=email)
     db.commit()
 
+    try:
+        accounts.send_verification(db, user, org)
+    except Exception as e:      # a mail outage must not block signup
+        DbAudit(db, org.id).record("verification_email_failed", error=str(e)[:200])
+        db.commit()
+
     token = create_session(db, user, request)
-    resp = redirect("/app/import", ok=f"Welcome to Baaki. Your {billing_mod.TRIAL_DAYS}-day trial has started.")
+    resp = redirect("/app/import", ok=f"Welcome to Baaki. Your {billing_mod.TRIAL_DAYS}-day trial has started — "
+                                      f"check {email} to confirm your address.")
     set_session_cookie(resp, token)
     issue_csrf(resp)
     return resp
@@ -130,14 +150,127 @@ def login_form(request: Request):
 def login(request: Request, db: DBSession = Depends(get_session), email: str = Form(...),
           password: str = Form(...), csrf_token: str = Form("")):
     require_csrf(request, csrf_token)
-    user = db.exec(select(User).where(User.email == email.strip().lower())).first()
+    email, ip = email.strip().lower(), client_ip(request)
+    if problem := accounts.throttle_problem(db, email, ip):
+        return redirect("/login", err=problem)
+
+    user = db.exec(select(User).where(User.email == email)).first()
     # Same message and comparable work either way — don't leak which emails exist.
-    if not user or not verify_password(password, user.password_hash):
-        hash_password(password)
+    if not user or user.disabled or not verify_password(password, user.password_hash):
+        if not user:
+            hash_password(password)
+        accounts.record_failure(db, email, ip)
         return redirect("/login", err="Email or password is incorrect.")
+    accounts.clear_failures(db, email, ip)
     token = create_session(db, user, request)
     resp = redirect("/app")
     set_session_cookie(resp, token)
+    issue_csrf(resp)
+    return resp
+
+
+@router.get("/verify", response_class=HTMLResponse)
+def verify_email(token: str, request: Request, db: DBSession = Depends(get_session)):
+    row = accounts.consume_token(db, token, TokenPurpose.VERIFY_EMAIL)
+    if not row:
+        return redirect("/login", err="That confirmation link has expired or was already used. Sign in to request another.")
+    user = db.get(User, row.user_id)
+    if user:
+        user.email_verified_at = utcnow()
+        db.add(user)
+        DbAudit(db, user.org_id, actor=f"user:{user.id}").record("email_verified", email=user.email)
+        db.commit()
+    return redirect("/app", ok="Email confirmed.")
+
+
+@router.post("/app/resend-verification")
+def resend_verification(request: Request, p: Principal = Depends(current_principal),
+                        db: DBSession = Depends(get_session), csrf_token: str = Form("")):
+    require_csrf(request, csrf_token)
+    if p.user.email_verified_at:
+        return redirect("/app", ok="Your email is already confirmed.")
+    accounts.send_verification(db, p.user, p.org)
+    return redirect("/app", ok=f"Confirmation email sent to {p.user.email}.")
+
+
+@router.get("/forgot", response_class=HTMLResponse)
+def forgot_form(request: Request):
+    return render(request, "forgot.html")
+
+
+@router.post("/forgot")
+def forgot(request: Request, db: DBSession = Depends(get_session), email: str = Form(...), csrf_token: str = Form("")):
+    require_csrf(request, csrf_token)
+    user = db.exec(select(User).where(User.email == email.strip().lower())).first()
+    if user and not user.disabled:
+        try:
+            accounts.send_password_reset(db, user)
+        except Exception:
+            pass
+    # Always the same answer: whether an address has an account is not public information.
+    return redirect("/login", ok="If that address has an account, a reset link is on its way. It expires in an hour.")
+
+
+@router.get("/reset", response_class=HTMLResponse)
+def reset_form(token: str, request: Request, db: DBSession = Depends(get_session)):
+    if not accounts.peek_token(db, token, TokenPurpose.PASSWORD_RESET):
+        return redirect("/forgot", err="That reset link has expired or was already used. Request a new one.")
+    return render(request, "reset.html", token=token)
+
+
+@router.post("/reset")
+def reset(request: Request, db: DBSession = Depends(get_session), token: str = Form(...),
+          password: str = Form(...), csrf_token: str = Form("")):
+    require_csrf(request, csrf_token)
+    if problem := password_problem(password):
+        return redirect(f"/reset?token={token}", err=problem)
+    row = accounts.consume_token(db, token, TokenPurpose.PASSWORD_RESET)
+    if not row:
+        return redirect("/forgot", err="That reset link has expired or was already used.")
+    user = db.get(User, row.user_id)
+    if not user:
+        return redirect("/forgot", err="That account no longer exists.")
+    user.password_hash = hash_password(password)
+    db.add(user)
+    # Changing a password invalidates every existing session — a reset is how you evict an intruder.
+    for sess in db.exec(select(SessionRow).where(SessionRow.user_id == user.id, SessionRow.revoked == False)).all():  # noqa: E712
+        sess.revoked = True
+        db.add(sess)
+    accounts.clear_failures(db, user.email, "")
+    DbAudit(db, user.org_id, actor=f"user:{user.id}").record("password_reset", email=user.email)
+    db.commit()
+    return redirect("/login", ok="Password changed, and every other session was signed out. Sign in with your new password.")
+
+
+@router.get("/invite", response_class=HTMLResponse)
+def invite_form(token: str, request: Request, db: DBSession = Depends(get_session)):
+    row = accounts.peek_token(db, token, TokenPurpose.INVITE)
+    if not row:
+        return redirect("/login", err="That invitation has expired or was already used.")
+    org = db.get(Org, row.org_id)
+    return render(request, "invite.html", token=token, invite=row, org_name=org.name if org else "")
+
+
+@router.post("/invite")
+def accept_invite(request: Request, db: DBSession = Depends(get_session), token: str = Form(...),
+                  name: str = Form(""), password: str = Form(...), csrf_token: str = Form("")):
+    require_csrf(request, csrf_token)
+    if problem := password_problem(password):
+        return redirect(f"/invite?token={token}", err=problem)
+    row = accounts.peek_token(db, token, TokenPurpose.INVITE)
+    if not row:
+        return redirect("/login", err="That invitation has expired or was already used.")
+    if db.exec(select(User).where(User.email == row.email)).first():
+        return redirect("/login", err="An account with that email already exists — sign in instead.")
+    accounts.consume_token(db, token, TokenPurpose.INVITE)
+    user = User(org_id=row.org_id, email=row.email, name=name.strip(), role=row.role,
+                password_hash=hash_password(password), email_verified_at=utcnow())
+    db.add(user); db.commit(); db.refresh(user)
+    DbAudit(db, row.org_id, actor=f"user:{user.id}").record("invite_accepted", email=user.email, role=user.role.value)
+    db.commit()
+    sess = create_session(db, user, request)
+    resp = redirect("/app", ok="Welcome to the team.")
+    set_session_cookie(resp, sess)
     issue_csrf(resp)
     return resp
 
@@ -374,7 +507,8 @@ def settings_page(request: Request, p: Principal = Depends(current_principal), d
     s = db.exec(select(PolicySettings).where(PolicySettings.org_id == p.org_id)).first() or PolicySettings(org_id=p.org_id)
     ok, msg = verify_chain(db, p.org_id)
     return render(request, "settings.html", p, s=s, chain_ok=ok, chain_msg=msg,
-                  rzp_key=mask(p.org.rzp_key_id), rzp_secret_set=bool(p.org.rzp_key_secret_enc))
+                  rzp_key=mask(p.org.rzp_key_id), rzp_secret_set=bool(p.org.rzp_key_secret_enc),
+                  model=active_model(db, p.org_id))
 
 
 @router.post("/app/settings/profile")
@@ -408,6 +542,7 @@ POLICY_LIMITS: dict[str, tuple[float, float, str]] = {
 async def save_policy(request: Request, p: Principal = Depends(current_principal), db: DBSession = Depends(get_session)):
     form = await request.form()
     require_csrf(request, str(form.get("csrf_token", "")))
+    require_owner(p)
     s = db.exec(select(PolicySettings).where(PolicySettings.org_id == p.org_id)).first()
     if not s:
         s = PolicySettings(org_id=p.org_id)
@@ -441,9 +576,13 @@ def save_agent(request: Request, p: Principal = Depends(current_principal), db: 
                agent_enabled: str = Form(""), approval_required: str = Form(""), llm_provider: str = Form("rules"),
                csrf_token: str = Form("")):
     require_csrf(request, csrf_token)
+    require_owner(p)
     if llm_provider not in ("rules", "openai", "claude"):
         return redirect("/app/settings", err="Unknown provider.")
     was = p.org.agent_enabled
+    if agent_enabled == "on" and not p.user.email_verified_at:
+        return redirect("/app/settings", err="Confirm your email address before switching the agent on — "
+                                             "we won't contact your customers on behalf of an unverified account.")
     p.org.agent_enabled = agent_enabled == "on"
     p.org.approval_required = approval_required == "on"
     p.org.llm_provider = llm_provider
@@ -460,6 +599,7 @@ def save_razorpay(request: Request, p: Principal = Depends(current_principal), d
                   key_id: str = Form(""), key_secret: str = Form(""), webhook_secret: str = Form(""),
                   csrf_token: str = Form("")):
     require_csrf(request, csrf_token)
+    require_owner(p)
     key_id = key_id.strip()
     if key_id and not key_id.startswith("rzp_test_"):
         return redirect("/app/settings", err="Only test-mode keys (rzp_test_…) are accepted. Live keys are refused by design.")
@@ -475,6 +615,103 @@ def save_razorpay(request: Request, p: Principal = Depends(current_principal), d
     return redirect("/app/settings", ok="Razorpay credentials saved (encrypted at rest).")
 
 
+@router.get("/app/team", response_class=HTMLResponse)
+def team_page(request: Request, p: Principal = Depends(current_principal), db: DBSession = Depends(get_session)):
+    from .models import Token
+
+    users = db.exec(select(User).where(User.org_id == p.org_id).order_by(User.created_at)).all()
+    invites = db.exec(select(Token).where(Token.org_id == p.org_id, Token.purpose == TokenPurpose.INVITE,
+                                          Token.used_at.is_(None)).order_by(Token.created_at.desc())).all()
+    live = [i for i in invites if (i.expires_at if i.expires_at.tzinfo else i.expires_at.replace(tzinfo=utcnow().tzinfo)) > utcnow()]
+    return render(request, "team.html", p, users=users, invites=live)
+
+
+@router.post("/app/team/invite")
+def invite_member(request: Request, p: Principal = Depends(current_principal), db: DBSession = Depends(get_session),
+                  email: str = Form(...), role: str = Form("member"), csrf_token: str = Form("")):
+    require_csrf(request, csrf_token)
+    require_owner(p)
+    email = email.strip().lower()
+    if not re.match(r"^[^@\s]+@[^@\s]+\.[^@\s]+$", email):
+        return redirect("/app/team", err="That email address doesn't look right.")
+    if db.exec(select(User).where(User.email == email)).first():
+        return redirect("/app/team", err="Someone with that email already has a Baaki account.")
+    if role not in ("owner", "member"):
+        return redirect("/app/team", err="Unknown role.")
+    try:
+        accounts.send_invite(db, p.org, p.user, email, Role(role))
+    except Exception as e:
+        return redirect("/app/team", err=f"Couldn't send the invitation: {str(e)[:120]}")
+    DbAudit(db, p.org_id, actor=f"user:{p.user.id}").record("invite_sent", email=email, role=role)
+    db.commit()
+    return redirect("/app/team", ok=f"Invitation sent to {email}.")
+
+
+@router.post("/app/team/revoke-invite/{token_id}")
+def revoke_invite(token_id: int, request: Request, p: Principal = Depends(current_principal),
+                  db: DBSession = Depends(get_session), csrf_token: str = Form("")):
+    require_csrf(request, csrf_token)
+    require_owner(p)
+    from .models import Token
+
+    row = db.get(Token, token_id)
+    if not row or row.org_id != p.org_id:
+        raise HTTPException(404)
+    row.used_at = utcnow()
+    db.add(row)
+    DbAudit(db, p.org_id, actor=f"user:{p.user.id}").record("invite_revoked", email=row.email)
+    db.commit()
+    return redirect("/app/team", ok="Invitation revoked.")
+
+
+@router.post("/app/team/{user_id}")
+def update_member(user_id: int, request: Request, p: Principal = Depends(current_principal),
+                  db: DBSession = Depends(get_session), action: str = Form(...), csrf_token: str = Form("")):
+    require_csrf(request, csrf_token)
+    require_owner(p)
+    target = db.get(User, user_id)
+    if not target or target.org_id != p.org_id:
+        raise HTTPException(404)
+
+    owners = db.exec(select(User).where(User.org_id == p.org_id, User.role == Role.OWNER, User.disabled == False)).all()  # noqa: E712
+    losing_last_owner = target.role == Role.OWNER and len(owners) <= 1 and action in ("demote", "disable")
+    if losing_last_owner:
+        return redirect("/app/team", err="An organisation must keep at least one active owner.")
+
+    audit = DbAudit(db, p.org_id, actor=f"user:{p.user.id}")
+    if action == "promote":
+        target.role = Role.OWNER
+    elif action == "demote":
+        target.role = Role.MEMBER
+    elif action == "disable":
+        target.disabled = True
+        for sess in db.exec(select(SessionRow).where(SessionRow.user_id == target.id, SessionRow.revoked == False)).all():  # noqa: E712
+            sess.revoked = True   # revoke immediately; a disabled user shouldn't finish their session
+            db.add(sess)
+    elif action == "enable":
+        target.disabled = False
+    else:
+        return redirect("/app/team", err="Unknown action.")
+    db.add(target)
+    audit.record("team_member_updated", target=target.email, action=action, role=target.role.value)
+    db.commit()
+    return redirect("/app/team", ok=f"{target.email} updated.")
+
+
+@router.post("/app/settings/refit-risk")
+def refit_risk(request: Request, p: Principal = Depends(current_principal), db: DBSession = Depends(get_session),
+               csrf_token: str = Form("")):
+    require_csrf(request, csrf_token)
+    require_owner(p)
+    audit = DbAudit(db, p.org_id, actor=f"user:{p.user.id}")
+    res = fit_org_model(db, p.org, audit)
+    db.commit()
+    if not res["fitted"]:
+        return redirect("/app/settings", err=f"Not enough settled history to fit a model yet — {res['reason']}.")
+    return redirect("/app/settings", ok=f"Model refitted on your own ledger: precision {res['precision']}, "
+                                        f"recall {res['recall']} on {res['holdout_rows']} held-out invoices.")
+
+
 # ============================================================================================
 # Billing
 # ============================================================================================
@@ -488,6 +725,7 @@ def billing_page(request: Request, p: Principal = Depends(current_principal), db
 def subscribe(request: Request, p: Principal = Depends(current_principal), db: DBSession = Depends(get_session),
               plan: str = Form(...), csrf_token: str = Form("")):
     require_csrf(request, csrf_token)
+    require_owner(p)
     try:
         res = billing_mod.create_subscription(db, p.org, Plan(plan))
     except (billing_mod.BillingUnavailable, ValueError) as e:

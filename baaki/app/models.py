@@ -36,8 +36,18 @@ class SubscriptionStatus(StrEnum):
 
 
 class Role(StrEnum):
-    OWNER = "owner"
-    MEMBER = "member"
+    OWNER = "owner"     # billing, team, credentials, guardrails
+    MEMBER = "member"   # ledger, approvals, audit — everything except the four above
+
+    @property
+    def can_administer(self) -> bool:
+        return self is Role.OWNER
+
+
+class TokenPurpose(StrEnum):
+    VERIFY_EMAIL = "verify_email"
+    PASSWORD_RESET = "password_reset"
+    INVITE = "invite"
 
 
 class Org(SQLModel, table=True):
@@ -91,6 +101,8 @@ class User(SQLModel, table=True):
     name: str = ""
     password_hash: str
     role: Role = Field(default=Role.OWNER)
+    email_verified_at: Optional[datetime] = None
+    disabled: bool = False
     created_at: datetime = Field(default_factory=utcnow)
     last_login_at: Optional[datetime] = None
 
@@ -138,7 +150,10 @@ class Customer(SQLModel, table=True):
 
     id: Optional[int] = Field(default=None, primary_key=True)
     org_id: int = Field(foreign_key="orgs.id", index=True)
-    external_id: str = ""          # the merchant's own customer code
+    # Nullable, not "": the unique constraint below pairs it with org_id, and SQL treats NULLs
+    # as distinct but empty strings as equal — so a default of "" would let only one customer
+    # per org lack a code.
+    external_id: Optional[str] = None
     name: str
     email: str = ""
     phone: str = ""
@@ -271,3 +286,70 @@ class PaymentRow(SQLModel, table=True):
     amount_paise: int
     source: str = "razorpay_link"
     received_at: datetime = Field(default_factory=utcnow)
+
+
+class Token(SQLModel, table=True):
+    """Single-use, expiring, hashed. Covers email verification, password reset and invites.
+
+    Only the SHA-256 of the token is stored, so a database leak doesn't hand over live links.
+    """
+
+    __tablename__ = "tokens"
+
+    id: Optional[int] = Field(default=None, primary_key=True)
+    token_hash: str = Field(index=True, unique=True)
+    purpose: TokenPurpose = Field(index=True)
+    org_id: Optional[int] = Field(default=None, foreign_key="orgs.id", index=True)
+    user_id: Optional[int] = Field(default=None, foreign_key="users.id", index=True)
+    email: str = ""                 # for invites, the address being invited
+    role: Role = Field(default=Role.MEMBER)
+    created_at: datetime = Field(default_factory=utcnow)
+    expires_at: datetime
+    used_at: Optional[datetime] = None
+    created_by: Optional[int] = Field(default=None, foreign_key="users.id")
+
+
+class LoginAttempt(SQLModel, table=True):
+    """Failed sign-in attempts, for throttling. Kept in the database so limits hold across workers."""
+
+    __tablename__ = "login_attempts"
+
+    id: Optional[int] = Field(default=None, primary_key=True)
+    key: str = Field(index=True)    # "email:<addr>" or "ip:<addr>"
+    at: datetime = Field(default_factory=utcnow, index=True)
+
+
+class RiskModelRow(SQLModel, table=True):
+    """A logistic model fitted on one org's own settled invoices, with its held-out metrics.
+
+    Absent or stale rows mean the shipped prior is used and scores stay `None` until an org has
+    enough of its own history — see `service.risk_score`.
+    """
+
+    __tablename__ = "risk_models"
+
+    id: Optional[int] = Field(default=None, primary_key=True)
+    org_id: int = Field(foreign_key="orgs.id", index=True)
+    fitted_at: datetime = Field(default_factory=utcnow, index=True)
+    weights_json: str
+    train_rows: int
+    holdout_rows: int
+    positives: int
+    precision: float
+    recall: float
+    f1: float
+    base_rate: float
+    threshold: float = 0.5
+    active: bool = Field(default=True, index=True)
+
+
+class RunLock(SQLModel, table=True):
+    """Advisory lock so two workers can't run the same org concurrently and double-send."""
+
+    __tablename__ = "run_locks"
+
+    id: Optional[int] = Field(default=None, primary_key=True)
+    org_id: int = Field(foreign_key="orgs.id", index=True, unique=True)
+    holder: str
+    acquired_at: datetime = Field(default_factory=utcnow)
+    expires_at: datetime

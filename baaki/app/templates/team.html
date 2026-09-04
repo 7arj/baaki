@@ -1,0 +1,90 @@
+{% extends "base.html" %}{% set nav='team' %}
+{% block title %}Team · Baaki{% endblock %}
+{% block body %}
+<div class="head"><div>
+  <h1>Team</h1>
+  <div class="sub">Owners manage billing, credentials, guardrails and the team. Members work the ledger and approvals.</div>
+</div></div>
+
+<div class="split">
+  <div class="card">
+    <h2>People</h2>
+    <div class="hint">{{ users|length }} in {{ org.name }}.</div>
+    <table>
+      <thead><tr><th>Person</th><th>Role</th><th>Status</th><th></th></tr></thead>
+      <tbody>
+      {% for u in users %}
+      <tr>
+        <td>
+          <div>{{ u.name or u.email }}</div>
+          {% if u.name %}<div class="muted small">{{ u.email }}</div>{% endif %}
+        </td>
+        <td><span class="pill">{{ u.role.value }}</span></td>
+        <td>
+          {% if u.disabled %}<span class="pill st-stopped"><span class="dot"></span>disabled</span>
+          {% elif not u.email_verified_at %}<span class="pill st-disputed"><span class="dot"></span>unverified</span>
+          {% else %}<span class="pill st-paid"><span class="dot"></span>active</span>{% endif %}
+        </td>
+        <td>
+          {% if principal.user.role.value == 'owner' and u.id != principal.user.id %}
+          <form method="post" action="/app/team/{{ u.id }}" style="margin:0" class="btn-row">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+            {% if u.role.value == 'member' %}
+              <button class="btn sm" name="action" value="promote" type="submit">Make owner</button>
+            {% else %}
+              <button class="btn sm" name="action" value="demote" type="submit">Make member</button>
+            {% endif %}
+            {% if u.disabled %}
+              <button class="btn sm" name="action" value="enable" type="submit">Enable</button>
+            {% else %}
+              <button class="btn sm danger" name="action" value="disable" type="submit">Disable</button>
+            {% endif %}
+          </form>
+          {% elif u.id == principal.user.id %}<span class="muted small">you</span>{% endif %}
+        </td>
+      </tr>
+      {% endfor %}
+      </tbody>
+    </table>
+  </div>
+
+  <div>
+    {% if principal.user.role.value == 'owner' %}
+    <div class="card">
+      <h2>Invite someone</h2>
+      <div class="hint">They'll get a link that expires in 7 days.</div>
+      <form method="post" action="/app/team/invite">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+        <div class="field"><label for="email">Email</label><input id="email" name="email" type="email" required></div>
+        <div class="field">
+          <label for="role">Role</label>
+          <select id="role" name="role">
+            <option value="member">Member — ledger, approvals, audit</option>
+            <option value="owner">Owner — everything, including billing</option>
+          </select>
+        </div>
+        <button class="btn primary" type="submit">Send invitation</button>
+      </form>
+    </div>
+    {% endif %}
+
+    <div class="card">
+      <h2>Pending invitations</h2>
+      {% for i in invites %}
+      <div class="btn-row" style="justify-content:space-between;padding:8px 0;border-bottom:1px solid var(--grid)">
+        <div>
+          <div>{{ i.email }}</div>
+          <div class="muted small">{{ i.role.value }} · expires {{ i.expires_at.strftime('%d %b') }}</div>
+        </div>
+        {% if principal.user.role.value == 'owner' %}
+        <form method="post" action="/app/team/revoke-invite/{{ i.id }}" style="margin:0">
+          <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+          <button class="btn sm ghost" type="submit">Revoke</button>
+        </form>
+        {% endif %}
+      </div>
+      {% else %}<p class="muted small">None outstanding.</p>{% endfor %}
+    </div>
+  </div>
+</div>
+{% endblock %}

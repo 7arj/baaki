@@ -131,6 +131,31 @@
     </div>
 
     <div class="card">
+      <h2>Risk model</h2>
+      <div class="hint">Ranks which invoice to work first. It only means something once your own
+        customers have settled invoices to learn from.</div>
+      {% if model %}
+      <dl class="kv">
+        <dt>Fitted</dt><dd>{{ model.fitted_at.strftime('%d %b %Y') }} on your ledger</dd>
+        <dt>Trained on</dt><dd>{{ model.train_rows }} settled invoices</dd>
+        <dt>Held out</dt><dd>{{ model.holdout_rows }} (different customers)</dd>
+        <dt>Precision</dt><dd>{{ model.precision }}</dd>
+        <dt>Recall</dt><dd>{{ model.recall }}</dd>
+        <dt>Base rate</dt><dd>{{ model.base_rate }}</dd>
+      </dl>
+      {% else %}
+      <p class="muted small">Using the shipped prior. Invoices from customers with no settled
+        history show "—" rather than a made-up score, and are ranked by amount and ageing.</p>
+      {% endif %}
+      {% if principal.user.role.value == 'owner' %}
+      <form method="post" action="/app/settings/refit-risk" style="margin-top:12px">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+        <button class="btn" type="submit">Refit on my ledger</button>
+      </form>
+      {% endif %}
+    </div>
+
+    <div class="card">
       <h2>Audit integrity</h2>
       <div class="hint">Every action is hash-chained. Any edit or deletion breaks the chain.</div>
       <div class="banner {{ 'ok' if chain_ok else 'err' }}" style="margin:0">

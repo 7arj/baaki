@@ -7,9 +7,9 @@ import pytest
 from fastapi.testclient import TestClient
 from sqlmodel import Session, select
 
-from baaki.app import db as db_mod
+from baaki.app import accounts, db as db_mod
 from baaki.app.db import init_db, make_engine
-from baaki.app.models import InvoiceRow, Org, Outbox, OutboxStatus, Plan, User
+from baaki.app.models import InvoiceRow, Org, Outbox, OutboxStatus, Plan, Role, TokenPurpose, User
 from baaki.app.service import DbAudit, verify_chain
 from baaki.app.web import create_app
 
@@ -31,6 +31,15 @@ def signup(client, company="Sharma Supplies", email="owner@sharma.in", password=
     token = _csrf(client)
     return client.post("/signup", data={"company": company, "name": "Owner", "email": email,
                                         "password": password, "csrf_token": token})
+
+
+def verify_email(client, email="owner@sharma.in"):
+    """Click the confirmation link, the way a new user would."""
+    with Session(db_mod.engine()) as s:
+        user = s.exec(select(User).where(User.email == email)).first()
+        raw = accounts.issue_token(s, TokenPurpose.VERIFY_EMAIL, org_id=user.org_id,
+                                   user_id=user.id, email=user.email)
+    return client.get(f"/verify?token={raw}")
 
 
 # ---- auth ---------------------------------------------------------------------------------
@@ -121,7 +130,8 @@ def test_missing_columns_are_named(client):
 
 
 # ---- the agent ----------------------------------------------------------------------------
-def _enable_agent(client, approval=True):
+def _enable_agent(client, approval=True, email="owner@sharma.in"):
+    verify_email(client, email)          # the agent can't be switched on before this
     csrf = client.cookies.get("baaki_csrf")
     data = {"agent_enabled": "on", "llm_provider": "rules", "csrf_token": csrf}
     if approval:

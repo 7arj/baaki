@@ -1,0 +1,20 @@
+{% extends "base.html" %}{% block title %}Choose a new password · Baaki{% endblock %}
+{% block body %}
+<div class="auth">
+  <a class="brand" href="/" style="justify-content:center;margin-bottom:18px"><span class="dot"></span>Baaki</a>
+  <div class="card">
+    <h1>Choose a new password</h1>
+    <p class="muted small" style="margin-bottom:20px">Every other signed-in session will be signed out.</p>
+    <form method="post" action="/reset">
+      <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+      <input type="hidden" name="token" value="{{ token }}">
+      <div class="field">
+        <label for="password">New password</label>
+        <input id="password" name="password" type="password" required minlength="10" autofocus>
+        <div class="help">At least 10 characters.</div>
+      </div>
+      <button class="btn primary lg" type="submit" style="width:100%;justify-content:center">Set password</button>
+    </form>
+  </div>
+</div>
+{% endblock %}

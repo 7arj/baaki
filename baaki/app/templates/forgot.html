@@ -1,0 +1,16 @@
+{% extends "base.html" %}{% block title %}Reset your password · Baaki{% endblock %}
+{% block body %}
+<div class="auth">
+  <a class="brand" href="/" style="justify-content:center;margin-bottom:18px"><span class="dot"></span>Baaki</a>
+  <div class="card">
+    <h1>Reset your password</h1>
+    <p class="muted small" style="margin-bottom:20px">We'll email you a link. It works once and expires in an hour.</p>
+    <form method="post" action="/forgot">
+      <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+      <div class="field"><label for="email">Email</label><input id="email" name="email" type="email" required autofocus></div>
+      <button class="btn primary lg" type="submit" style="width:100%;justify-content:center">Send reset link</button>
+    </form>
+    <div class="alt"><a href="/login">Back to sign in</a></div>
+  </div>
+</div>
+{% endblock %}

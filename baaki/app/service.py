@@ -21,12 +21,14 @@ from ..brain import ClaudeBrain, DecisionContext, OpenAIBrain, ResilientBrain, R
 from ..domain import IST, ActionType, Archetype, Debtor, Intent, Invoice, InvoiceStatus, rupees
 from ..policy import Policy, PolicyBounds
 from ..razorpay_client import FakeRazorpay, RealRazorpay
-from ..risk import features
+from ..risk import FEATURES, RiskModel, features, is_holdout
 from ..tools import Toolbox
 from .models import (
-    AuditRow, Customer, Event, InvoiceRow, Org, Outbox, OutboxStatus, PaymentRow, PolicySettings, utcnow,
+    AuditRow, Customer, Event, InvoiceRow, Org, Outbox, OutboxStatus, PaymentRow, PolicySettings,
+    RiskModelRow, RunLock, utcnow,
 )
 from .security import decrypt_secret
+from .transports import channel_for
 
 # Weights from the held-out training run in `reports/summary_rules.json` (precision 0.74 /
 # recall 1.00). A new merchant has no payment history to train on, so these ship as the prior;
@@ -202,20 +204,95 @@ INV-2045,Bose Electricals,finance@boseelectricals.in,+919812345675,120240.00,202
 
 
 # ============================================================================================
-def risk_score(inv: InvoiceRow, cust: Customer, history: dict, today: date) -> float | None:
+def risk_score(inv: InvoiceRow, cust: Customer, history: dict, today: date,
+               weights: list[float] | None = None) -> float | None:
     """Probability this invoice won't be paid in 30 days without intervention — or None.
 
-    Four of the model's six features describe how this customer has paid *before*. With no
-    resolved invoices those are all zero and the model collapses to its bias term, returning the
-    same ~0.33 for everyone. A uniform number dressed up as a prediction is worse than no number,
-    so we return None until there is history, and the UI ranks and labels accordingly.
+    Four of the six features describe how this customer has paid *before*. With no settled
+    invoices those are all zero and the model collapses to its bias term, returning the same
+    number for everyone; a uniform value dressed as a prediction is worse than none, so we
+    return None and the UI ranks by ageing instead. Once an org has enough of its own history,
+    `fit_org_model` replaces the shipped prior with weights fitted on their actual payers.
     """
     if history.get("total", 0) == 0:
         return None
     dom = _to_domain_invoice(inv, today)
     debtor = _to_domain_debtor(cust, history)
-    z = sum(w * x for w, x in zip(DEFAULT_RISK_WEIGHTS, features(dom, debtor, _day_index(today, inv.due_on))))
-    return round(1.0 / (1.0 + math.exp(-z)), 3)
+    return round(model_predict(weights or DEFAULT_RISK_WEIGHTS,
+                               features(dom, debtor, _day_index(today, inv.due_on))), 3)
+
+
+MIN_ROWS_TO_FIT = 40      # below this a fitted model is noise dressed as precision
+MIN_POSITIVES_TO_FIT = 8
+
+
+def active_model(db: DBSession, org_id: int) -> RiskModelRow | None:
+    return db.exec(select(RiskModelRow).where(RiskModelRow.org_id == org_id, RiskModelRow.active == True)  # noqa: E712
+                   .order_by(RiskModelRow.fitted_at.desc())).first()
+
+
+def fit_org_model(db: DBSession, org: Org, audit: "DbAudit | None" = None) -> dict:
+    """Refit the risk model on this org's own settled invoices.
+
+    Label: the invoice was not paid within 30 days of falling due. Only resolved invoices carry a
+    label — an open invoice's outcome isn't known yet, and including it would leak the present
+    into the training set. The split is by customer id, so no customer appears in both train and
+    holdout; a per-invoice split would let the same payer's behaviour teach and then grade.
+    """
+    rows = db.exec(select(InvoiceRow).where(InvoiceRow.org_id == org.id,
+                                            InvoiceRow.status.in_(("paid", "stopped")))).all()
+    customers = {c.id: c for c in db.exec(select(Customer).where(Customer.org_id == org.id)).all()}
+    train, hold = [], []
+    for r in rows:
+        cust = customers.get(r.customer_id)
+        if not cust:
+            continue
+        settled = r.updated_at.date()
+        label = 1 if (r.status != "paid" or (settled - r.due_on).days > 30) else 0
+        # History as it stood before this invoice settled, so the label can't feed its own features.
+        hist = _history_excluding(rows, r, cust.id)
+        x = features(_to_domain_invoice(r, r.due_on), _to_domain_debtor(cust, hist), 0)
+        (hold if is_holdout(str(cust.id)) else train).append((x, label))
+
+    positives = sum(y for _, y in train + hold)
+    if len(train) + len(hold) < MIN_ROWS_TO_FIT or positives < MIN_POSITIVES_TO_FIT or not hold:
+        result = {"fitted": False,
+                  "reason": f"needs {MIN_ROWS_TO_FIT}+ settled invoices with {MIN_POSITIVES_TO_FIT}+ late ones "
+                            f"(have {len(train) + len(hold)} and {positives})"}
+        if audit:
+            audit.record("risk_model_skipped", **result)
+        return result
+
+    model = RiskModel()
+    model.fit(train)
+    preds = [(model_predict(model.weights, x), y) for x, y in hold]
+    metrics = RiskModel.metrics(preds, 0.5)
+    for old in db.exec(select(RiskModelRow).where(RiskModelRow.org_id == org.id)).all():
+        old.active = False
+        db.add(old)
+    row = RiskModelRow(org_id=org.id, weights_json=json.dumps(model.weights), train_rows=len(train),
+                       holdout_rows=len(hold), positives=metrics["positives"], precision=metrics["precision"],
+                       recall=metrics["recall"], f1=metrics["f1"],
+                       base_rate=round(sum(y for _, y in hold) / len(hold), 3))
+    db.add(row)
+    db.commit()
+    result = {"fitted": True, "train_rows": len(train), "holdout_rows": len(hold), **metrics}
+    if audit:
+        audit.record("risk_model_fitted", **result)
+    return result
+
+
+def model_predict(weights: list[float], x: list[float]) -> float:
+    return 1.0 / (1.0 + math.exp(-sum(w * xi for w, xi in zip(weights, x))))
+
+
+def _history_excluding(rows: list[InvoiceRow], target: InvoiceRow, customer_id: int) -> dict:
+    prior = [r for r in rows if r.customer_id == customer_id and r.id != target.id and r.due_on < target.due_on]
+    late = [r for r in prior if r.updated_at.date() > r.due_on]
+    days = [(r.updated_at.date() - r.due_on).days for r in late]
+    return {"total": len(prior), "late": len(late),
+            "partials": sum(1 for r in prior if 0 < r.amount_paid_paise < r.amount_paise),
+            "avg_days_late": round(sum(days) / len(days), 1) if days else 0.0}
 
 
 def work_priority(row: InvoiceRow, today: date) -> float:
@@ -293,6 +370,9 @@ class RecoveryEngine:
         self.policy = Policy(bounds_for(db, org.id))
         self.rzp = razorpay_for(org)
         self.brain = brain_for(org, self.audit)
+        fitted = active_model(db, org.id)
+        self.weights = json.loads(fitted.weights_json) if fitted else DEFAULT_RISK_WEIGHTS
+        self.model_source = "org" if fitted else "prior"
         self.queued: list[Outbox] = []
         self.actioned = 0
         self.blocked = 0
@@ -310,7 +390,8 @@ class RecoveryEngine:
         if not self.org.agent_enabled:
             return {"skipped": "agent is paused for this organisation"}
         self.audit.record("agent_run_started", date=str(self.today), provider=self.org.llm_provider,
-                          approval_required=self.org.approval_required, dry_run=self.dry_run)
+                          approval_required=self.org.approval_required, dry_run=self.dry_run,
+                          risk_model=self.model_source)
         for row in self._due():
             try:
                 self._step(row)
@@ -327,7 +408,7 @@ class RecoveryEngine:
         if cust and cust.do_not_contact and not row.cease_requested:
             row.cease_requested = True  # a cease request applies to every invoice for that customer
         hist = customer_history(self.db, self.org.id, row.customer_id)
-        row.risk_score = risk_score(row, cust, hist, self.today)
+        row.risk_score = risk_score(row, cust, hist, self.today, self.weights)
 
         dom = _to_domain_invoice(row, self.today)
         debtor = _to_domain_debtor(cust, hist)
@@ -376,8 +457,9 @@ class RecoveryEngine:
         status = OutboxStatus.PENDING_APPROVAL if self.org.approval_required else OutboxStatus.QUEUED
         if self.dry_run:
             status = OutboxStatus.PENDING_APPROVAL
-        msg = Outbox(org_id=self.org.id, invoice_id=row.id, channel=channel,
-                     to_address=(cust.email or cust.phone) if cust else "",
+        chan, address = channel_for(cust.email if cust else "", cust.phone if cust else "")
+        msg = Outbox(org_id=self.org.id, invoice_id=row.id, channel=chan,
+                     to_address=address,
                      subject=f"Invoice {row.number} — payment reminder from {self.org.legal_name or self.org.name}",
                      body=text, status=status, action=action,
                      rationale=getattr(decision, "rationale", ""), decided_by=getattr(decision, "source", "rules"))
@@ -433,3 +515,47 @@ def record_payment(db: DBSession, org_id: int, invoice: InvoiceRow, payment_id: 
     audit.record("payment_received", invoice=invoice.number, invoice_pk=invoice.id, payment_id=payment_id,
                  amount_paise=credited, source=source, written_off_paise=written_off, status=invoice.status)
     return credited
+
+
+# ============================================================================================
+LOCK_TTL = timedelta(minutes=30)
+
+
+class LockBusy(RuntimeError):
+    pass
+
+
+class org_lock:
+    """Advisory per-org lock so two workers can't run the same ledger and double-send.
+
+    A stale lock (holder crashed mid-run) expires after LOCK_TTL and is reclaimed; the unique
+    index on `org_id` is what actually serialises two racing acquirers.
+    """
+
+    def __init__(self, db: DBSession, org_id: int, holder: str):
+        self.db, self.org_id, self.holder = db, org_id, holder
+        self.row: RunLock | None = None
+
+    def __enter__(self) -> "org_lock":
+        from sqlalchemy.exc import IntegrityError
+
+        existing = self.db.exec(select(RunLock).where(RunLock.org_id == self.org_id)).first()
+        if existing:
+            expires = existing.expires_at if existing.expires_at.tzinfo else existing.expires_at.replace(tzinfo=utcnow().tzinfo)
+            if expires > utcnow():
+                raise LockBusy(f"org {self.org_id} is already being processed by {existing.holder}")
+            self.db.delete(existing)
+            self.db.commit()
+        self.row = RunLock(org_id=self.org_id, holder=self.holder, expires_at=utcnow() + LOCK_TTL)
+        self.db.add(self.row)
+        try:
+            self.db.commit()
+        except IntegrityError:      # another worker won the race between our check and insert
+            self.db.rollback()
+            raise LockBusy(f"org {self.org_id} is already being processed")
+        return self
+
+    def __exit__(self, *exc) -> None:
+        if self.row is not None:
+            self.db.delete(self.row)
+            self.db.commit()

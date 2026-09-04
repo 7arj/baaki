@@ -1,0 +1,23 @@
+{% extends "base.html" %}{% block title %}Join {{ org_name }} on Baaki{% endblock %}
+{% block body %}
+<div class="auth">
+  <a class="brand" href="/" style="justify-content:center;margin-bottom:18px"><span class="dot"></span>Baaki</a>
+  <div class="card">
+    <h1>Join {{ org_name }}</h1>
+    <p class="muted small" style="margin-bottom:20px">
+      You've been invited as {{ invite.role.value }} for <b>{{ invite.email }}</b>. Choose a password to accept.
+    </p>
+    <form method="post" action="/invite">
+      <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+      <input type="hidden" name="token" value="{{ token }}">
+      <div class="field"><label for="name">Your name</label><input id="name" name="name" autofocus></div>
+      <div class="field">
+        <label for="password">Password</label>
+        <input id="password" name="password" type="password" required minlength="10">
+        <div class="help">At least 10 characters.</div>
+      </div>
+      <button class="btn primary lg" type="submit" style="width:100%;justify-content:center">Accept invitation</button>
+    </form>
+  </div>
+</div>
+{% endblock %}

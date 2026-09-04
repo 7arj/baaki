@@ -151,6 +151,14 @@ def cmd_app(a):
     uvicorn.run("baaki.app.web:app", host=a.host, port=a.port, reload=a.reload)
 
 
+def cmd_migrate(a):
+    """Bring the database schema to head."""
+    from .app.db import current_revision, init_db
+
+    action = init_db()
+    console.print(f"[green]{action}[/] — schema at revision {current_revision()}")
+
+
 def cmd_demo(a):
     """Seed a demo tenant with a realistic ledger, payments, replies and escalations."""
     from .app.demo import seed
@@ -167,23 +175,35 @@ def cmd_worker(a):
     """Run the daily recovery pass for every eligible org, then flush the outbox."""
     from sqlmodel import Session, select
 
+    import os
+    import socket
+
+    from .app.accounts import prune_attempts
     from .app.billing import entitlement_problem
     from .app.db import engine, init_db
     from .app.models import Org
-    from .app.service import RecoveryEngine
+    from .app.service import LockBusy, RecoveryEngine, fit_org_model, org_lock
     from .app.transports import dispatch_outbox
 
     init_db()
+    holder = f"{socket.gethostname()}:{os.getpid()}"
     with Session(engine()) as db:
         orgs = db.exec(select(Org).where(Org.agent_enabled == True)).all()  # noqa: E712
         for org in orgs:
             if problem := entitlement_problem(org):
                 console.print(f"[yellow]skip[/] {org.slug}: {problem}")
                 continue
-            res = RecoveryEngine(db, org, dry_run=a.dry_run).run()
-            console.print(f"[green]{org.slug}[/] {res}")
+            try:
+                with org_lock(db, org.id, holder):
+                    if a.refit:
+                        console.print(f"  {org.slug} model: {fit_org_model(db, org)}")
+                    res = RecoveryEngine(db, org, dry_run=a.dry_run).run()
+                    console.print(f"[green]{org.slug}[/] {res}")
+            except LockBusy as e:
+                console.print(f"[yellow]busy[/] {e}")
         if not a.dry_run:
             console.print(f"outbox: {dispatch_outbox(db)}")
+        prune_attempts(db)
         if not orgs:
             console.print("no organisations have the agent enabled")
 
@@ -219,12 +239,16 @@ def main(argv=None):
     w.add_argument("--reload", action="store_true")
     w.set_defaults(fn=cmd_app)
 
+    m = sub.add_parser("migrate", help="create or upgrade the database schema")
+    m.set_defaults(fn=cmd_migrate)
+
     d = sub.add_parser("demo", help="seed a demo tenant you can sign into")
     d.add_argument("--keep", action="store_true", help="don't reset if it already exists")
     d.set_defaults(fn=cmd_demo)
 
     k = sub.add_parser("worker", help="daily recovery pass for every enabled org (run from cron)")
     k.add_argument("--dry-run", action="store_true", help="queue for approval, send nothing")
+    k.add_argument("--refit", action="store_true", help="refit each org's risk model before running")
     k.set_defaults(fn=cmd_worker)
 
     a = p.parse_args(argv)

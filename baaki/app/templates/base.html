@@ -16,6 +16,7 @@
     <a href="/app/invoices" class="{{ 'on' if nav=='invoices' }}">Invoices</a>
     <a href="/app/approvals" class="{{ 'on' if nav=='approvals' }}">Approvals{% if pending_count %}<span class="count">{{ pending_count }}</span>{% endif %}</a>
     <a href="/app/audit" class="{{ 'on' if nav=='audit' }}">Audit</a>
+    <a href="/app/team" class="{{ 'on' if nav=='team' }}">Team</a>
     <a href="/app/settings" class="{{ 'on' if nav=='settings' }}">Settings</a>
     <a href="/app/billing" class="{{ 'on' if nav=='billing' }}">Billing</a>
   </nav>
@@ -32,6 +33,15 @@
 <main>
   {% if ok %}<div class="banner ok"><span class="ico">✓</span><div>{{ ok }}</div></div>{% endif %}
   {% if err %}<div class="banner err"><span class="ico">!</span><div>{{ err }}</div></div>{% endif %}
+  {% if principal and not principal.user.email_verified_at %}
+  <div class="banner warn"><span class="ico">!</span><div>
+    Confirm <b>{{ principal.user.email }}</b> to switch the agent on.
+    <form method="post" action="/app/resend-verification" style="display:inline">
+      <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+      <button class="btn ghost sm" type="submit">Resend email</button>
+    </form>
+  </div></div>
+  {% endif %}
   {% if entitlement %}<div class="banner warn"><span class="ico">!</span><div>{{ entitlement }} <a href="/app/billing">View plans →</a></div></div>{% endif %}
   {% block body %}{% endblock %}
 </main>
