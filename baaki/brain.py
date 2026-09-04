@@ -275,11 +275,46 @@ class ClaudeBrain:
         )
 
 
-class ResilientBrain:
-    """An LLM brain with a deterministic safety net. Every fallback is counted and audited."""
+# USD per 1M tokens (input, output). Used only to report what a run cost; a missing entry
+# reports tokens without a figure rather than guessing.
+PRICES: dict[str, tuple[float, float]] = {
+    "gpt-5": (1.25, 10.00),
+    "gpt-5-mini": (0.25, 2.00),
+    "gpt-5-nano": (0.05, 0.40),
+    "gpt-4.1": (2.00, 8.00),
+    "gpt-4.1-mini": (0.40, 1.60),
+    "gpt-4.1-nano": (0.10, 0.40),
+    "claude-opus-5": (5.00, 25.00),
+    "claude-sonnet-5": (2.00, 10.00),
+    "claude-haiku-4-5": (1.00, 5.00),
+}
 
-    def __init__(self, primary, fallback: RuleBrain, audit):
+
+def estimate_cost_usd(model: str, input_tokens: int, output_tokens: int, cached_tokens: int = 0) -> float | None:
+    price = PRICES.get(model) or PRICES.get(model.rsplit("-", 2)[0])
+    if not price:
+        return None
+    fresh = max(0, input_tokens - cached_tokens)
+    # Cached input is billed at a fraction; 10% is the common rate and is close enough for a
+    # cost readout that is explicitly an estimate.
+    return round((fresh * price[0] + cached_tokens * price[0] * 0.1 + output_tokens * price[1]) / 1e6, 4)
+
+
+class BudgetExhausted(RuntimeError):
+    """The run hit its LLM call cap. Not an error: the rules brain takes over from here."""
+
+
+class ResilientBrain:
+    """An LLM brain with a deterministic safety net. Every fallback is counted and audited.
+
+    `max_calls` is a hard spend cap. Once it is reached the run continues deterministically
+    rather than stopping, so a capped run still produces complete, comparable numbers.
+    """
+
+    def __init__(self, primary, fallback: RuleBrain, audit, max_calls: int | None = None):
         self.primary = primary
+        self.max_calls = max_calls
+        self.budget_exhausted_at: int | None = None
         self.name = f"{primary.name}+rules"
         self.fallback = fallback
         self.audit = audit
@@ -287,6 +322,14 @@ class ResilientBrain:
         self.errors: list[str] = []
 
     def decide(self, ctx: DecisionContext) -> Decision:
+        if self.max_calls is not None and self.primary.calls >= self.max_calls:
+            if self.budget_exhausted_at is None:
+                self.budget_exhausted_at = self.primary.calls
+                self.audit.record("llm_budget_exhausted", calls=self.primary.calls,
+                                  cap=self.max_calls, note="remaining decisions run on the rules brain")
+            d = self.fallback.decide(ctx)
+            d.source = f"{self.primary.name}->rules(budget)"
+            return d
         try:
             return self.primary.decide(ctx)
         except Exception as e:  # network, auth, rate limit, refusal, invalid output — all degrade the same way
@@ -340,7 +383,7 @@ class OpenAIBrain:
 
         self._openai = openai
         self.client = openai.OpenAI()
-        self.model = model or os.environ.get("BAAKI_OPENAI_MODEL", "gpt-5")
+        self.model = model or os.environ.get("BAAKI_OPENAI_MODEL", "gpt-5-mini")
         self.effort = self._EFFORT.get(effort, "low")
         self.outage_days = outage_days or set()
         self._send_effort = True

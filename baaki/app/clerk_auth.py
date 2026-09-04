@@ -30,8 +30,21 @@ def enabled() -> bool:
     return bool(os.environ.get("CLERK_SECRET_KEY"))
 
 
+# Clerk's dashboard hands out the framework-prefixed name by default, so accept those too
+# rather than making an operator rename what they copied.
+PUBLISHABLE_KEY_VARS = (
+    "CLERK_PUBLISHABLE_KEY",
+    "NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY",
+    "VITE_CLERK_PUBLISHABLE_KEY",
+    "PUBLIC_CLERK_PUBLISHABLE_KEY",
+)
+
+
 def publishable_key() -> str:
-    return os.environ.get("CLERK_PUBLISHABLE_KEY", "")
+    for name in PUBLISHABLE_KEY_VARS:
+        if value := os.environ.get(name):
+            return value
+    return ""
 
 
 def _secret() -> str:

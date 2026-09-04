@@ -6,7 +6,7 @@
 - [ ] Push this repo to public GitHub (`gh repo create baaki --public --source=. --push`)
 - [ ] Record the 5-minute pitch (script below), upload unlisted to YouTube/Drive
 - [ ] Put the video link at the top of README
-- [ ] Optional but strong: run once with a real key (`--brain openai` or `--brain claude`) and paste the report numbers into README
+- [x] Ran on `gpt-5-mini` (335 calls, $0.40); numbers and the honest comparison are in the README
 - [ ] Optional: create Razorpay test keys, set env, run `serve`, and screenshot a real `plink_…` in the dashboard
 - [ ] Fill the form: track = AI Revenue Recovery, repo link, video link, one-paragraph architecture (copy "What makes it safe" from README)
 
@@ -19,6 +19,8 @@
 **1:40 – 2:50 · Dashboard.** `serve`, open an escalated invoice (e.g. the ₹2.4L Mehta Traders dispute). Show timeline: link created day 0 → reply "20 cartons short-shipped" → intent classified dispute → escalated → human resolves → payment arrives day 9 via bank transfer. Scroll the audit trail: `policy_check` with verdict, `razorpay_call` with the `plink_` id, hash-chained.
 
 **2:50 – 3:50 · The bar: bounded, gated, explainable.** Open `policy.py` for 20 seconds: rule ids, RBI 8-to-7 window, discount cap, forbidden phrases. Then the fault demo in the audit log: the injected rogue decision (15% discount + "inform your family") blocked as `P-DISC-01`; Razorpay 503 → three attempts → deferred without a contact; (if Claude key) day-3 LLM outage → `brain_fallback` → run continues. "Every money action goes through one gate. The LLM proposes; it never executes."
+
+**3:20 – 3:50 · The LLM did not win, and I measured it.** "I ran the same ledger through gpt-5-mini. It recovered 64% against the playbook's 74%, because it reaches for reminders and escalations where the playbook reaches for links and payment plans. I'm reporting that rather than hiding it. What the model is better at is explaining itself, so the shape I'd ship is: model for reading replies and drafting, playbook for sequencing. Swapping the brain also caught a real bug the rules path never could."
 
 **3:50 – 4:30 · Measured honestly.** Risk model: trained on the do-nothing run, evaluated on debtors it never saw — precision 0.74, recall 1.0. "Debtors are simulated; I'm claiming the mechanics work, not a forecast. The Razorpay path is real: test-mode SDK, signed webhooks, idempotent credit — flip an env var."
 

@@ -39,7 +39,8 @@ def cmd_run(a):
     if keys and not any(os.environ.get(k) for k in keys):
         console.print(f"[yellow]No {keys[0]} set — {a.brain} decisions will fall back to the rules brain (this is the graceful-degradation path, not a crash).[/]")
     faults = Faults(razorpay_fail_creates=2, llm_outage_days={3}, rogue_day=2) if a.demo_faults else Faults()
-    results = run_all(REPORTS, brain=a.brain, horizon=a.days, seed=a.seed, faults=faults, llm_effort=a.effort, model=a.model)
+    results = run_all(REPORTS, brain=a.brain, horizon=a.days, seed=a.seed, faults=faults,
+                      llm_effort=a.effort, model=a.model, max_llm_calls=a.max_llm_calls)
     print_summary(results)
     write_markdown(results, a.brain)
 
@@ -73,7 +74,13 @@ def print_summary(results):
     console.print(f"risk model (held-out {h['n']} invoices, base rate {rm['base_rate_holdout']}): precision {h['precision']} recall {h['recall']} f1 {h['f1']} @0.5")
     llm = runs["agent"].get("llm")
     if llm:
-        console.print(f"LLM: {llm['provider']}/{llm['model']} calls={llm['calls']} fallbacks={llm['fallbacks']} tokens in/out={llm['input_tokens']}/{llm['output_tokens']} cache_read={llm['cache_read_tokens']}")
+        cost = llm.get("estimated_cost_usd")
+        console.print(f"LLM: {llm['provider']}/{llm['model']} calls={llm['calls']} fallbacks={llm['fallbacks']} "
+                      f"tokens in/out={llm['input_tokens']}/{llm['output_tokens']} cache_read={llm['cache_read_tokens']}"
+                      + (f" [bold]~${cost}[/]" if cost is not None else ""))
+        if llm.get("budget_exhausted_at") is not None:
+            console.print(f"[yellow]LLM budget cap of {llm['budget_cap']} hit; "
+                          f"the remaining decisions ran on the rules brain.[/]")
     if runs["agent"].get("llm_unavailable"):
         console.print(f"[yellow]{runs['agent']['llm_unavailable']} — numbers below are the rules brain's.[/]")
     ex = runs["agent"]["exceptions"]
@@ -151,6 +158,87 @@ def cmd_app(a):
     uvicorn.run("baaki.app.web:app", host=a.host, port=a.port, reload=a.reload)
 
 
+def cmd_doctor(a):
+    """Check what is configured and what will happen at runtime."""
+    import os
+
+    from .app import clerk_auth
+    from .app.db import current_revision, database_url
+    from .app.transports import build_transport
+
+    def row(label, ok, detail):
+        mark = "[green]ok[/]" if ok else "[yellow]--[/]"
+        console.print(f"  {mark}  {label:<22} {detail}")
+
+    console.print("[bold]Database[/]")
+    row("url", True, database_url())
+    try:
+        row("schema", True, f"revision {current_revision()}")
+    except Exception as e:
+        row("schema", False, f"not initialised ({type(e).__name__}) — run `baaki migrate`")
+
+    console.print("[bold]Identity[/]")
+    if clerk_auth.enabled():
+        pk = clerk_auth.publishable_key()
+        row("provider", True, "Clerk")
+        row("publishable key", bool(pk), pk[:20] + "…" if pk else "MISSING — the widget cannot load")
+        row("networkless verify", bool(os.environ.get("CLERK_JWT_KEY")),
+            "CLERK_JWT_KEY set" if os.environ.get("CLERK_JWT_KEY") else "not set; JWKS fetched per request")
+        row("webhooks", bool(os.environ.get("CLERK_WEBHOOK_SECRET")),
+            "configured" if os.environ.get("CLERK_WEBHOOK_SECRET") else "not set; /webhooks/clerk returns 503")
+        try:
+            from clerk_backend_api import Clerk
+
+            with Clerk(bearer_auth=os.environ["CLERK_SECRET_KEY"]) as c:
+                n = c.users.count()
+                row("secret key", True, f"valid; {getattr(n, 'total_count', '?')} users in the instance")
+        except Exception as e:
+            row("secret key", False, f"rejected by Clerk: {str(e)[:90]}")
+    else:
+        row("provider", True, "built-in password auth (CLERK_SECRET_KEY not set)")
+
+    console.print("[bold]LLM brains[/]")
+    if os.environ.get("OPENAI_API_KEY"):
+        want = os.environ.get("BAAKI_OPENAI_MODEL", "gpt-5-mini")
+        try:
+            import openai
+
+            ids = {m.id for m in openai.OpenAI().models.list()}
+            row("openai key", True, f"valid; {len(ids)} models available")
+            if want in ids:
+                row("openai model", True, f"{want} reachable")
+            else:
+                near = sorted(m for m in ids if m.startswith(("gpt-5", "gpt-4.1", "o4", "o3")))[:6]
+                row("openai model", False,
+                    f"{want} NOT available. Try: {', '.join(near) or 'see the full list'} (--model)")
+        except Exception as e:
+            row("openai key", False, f"rejected: {str(e)[:100]}")
+    else:
+        row("openai", False, "OPENAI_API_KEY not set; --brain openai falls back to rules")
+    if os.environ.get("ANTHROPIC_API_KEY"):
+        row("anthropic key", True, "set (not verified without a call)")
+    else:
+        row("anthropic", False, "ANTHROPIC_API_KEY not set")
+
+    console.print("[bold]Delivery[/]")
+    t = build_transport()
+    row("transport", t.name != "console", f"{t.name}" + (" — messages print to stdout" if t.name == "console" else ""))
+    row("whatsapp", bool(os.environ.get("WHATSAPP_PHONE_NUMBER_ID")),
+        "configured" if os.environ.get("WHATSAPP_PHONE_NUMBER_ID") else "not set; email only")
+
+    console.print("[bold]Money[/]")
+    row("razorpay (collect)", bool(os.environ.get("RAZORPAY_KEY_ID")),
+        os.environ.get("RAZORPAY_KEY_ID", "per-org keys in Settings, or sandbox"))
+    row("razorpay (billing)", bool(os.environ.get("BAAKI_RZP_KEY_ID")),
+        "platform keys set" if os.environ.get("BAAKI_RZP_KEY_ID") else "sandbox: subscriptions activate locally")
+
+    console.print("[bold]Secrets[/]")
+    row("BAAKI_SECRET_KEY", bool(os.environ.get("BAAKI_SECRET_KEY")),
+        "set" if os.environ.get("BAAKI_SECRET_KEY") else "using the dev fallback — set this in production")
+    row("BAAKI_ENV", os.environ.get("BAAKI_ENV") == "production",
+        os.environ.get("BAAKI_ENV", "development; cookies are not Secure"))
+
+
 def cmd_migrate(a):
     """Bring the database schema to head."""
     from .app.db import current_revision, init_db
@@ -222,6 +310,8 @@ def main(argv=None):
     r.add_argument("--days", type=int, default=45)
     r.add_argument("--seed", type=int, default=7)
     r.add_argument("--effort", default="low", help="reasoning effort (low|medium|high)")
+    r.add_argument("--max-llm-calls", type=int, default=None,
+                   help="hard spend cap: after N model calls the run finishes on the rules brain")
     r.add_argument("--demo-faults", action="store_true", help="inject a Razorpay outage, an LLM outage and a rogue decision")
     r.set_defaults(fn=cmd_run)
 
@@ -238,6 +328,9 @@ def main(argv=None):
     w.add_argument("--host", default="127.0.0.1")
     w.add_argument("--reload", action="store_true")
     w.set_defaults(fn=cmd_app)
+
+    doc = sub.add_parser("doctor", help="show what is configured and what will happen at runtime")
+    doc.set_defaults(fn=cmd_doctor)
 
     m = sub.add_parser("migrate", help="create or upgrade the database schema")
     m.set_defaults(fn=cmd_migrate)

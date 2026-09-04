@@ -5,6 +5,7 @@ No brain (LLM or rules) can move money or contact a debtor except through `Toolb
 
 from __future__ import annotations
 
+import re
 from dataclasses import dataclass, field
 from datetime import datetime
 from typing import Any
@@ -111,6 +112,12 @@ class Toolbox:
         return p
 
     def _contacted(self, inv: Invoice, day: int, text: str, channel: str = "whatsapp+email", action: str = "", decision=None) -> None:
+        leaked = [m for m in self.PLACEHOLDER_MARKERS if m in text]
+        if leaked:
+            # Should be unreachable; recorded loudly rather than silently mailed to a customer.
+            self.audit.record("message_blocked_unfilled_placeholder", day=day, invoice=inv.id,
+                              markers=leaked, text=text[:400])
+            raise ValueError(f"refusing to send a message containing {leaked}")
         inv.contact_count += 1
         inv.contact_days.append(day)
         inv.next_action_day = day + self.policy.bounds.min_gap_days_between_contacts
@@ -119,9 +126,16 @@ class Toolbox:
         if self.on_message:
             self.on_message(inv, day, text, channel, action, decision)
 
+    PLACEHOLDER_MARKERS = ("{link}", "(link pending)", "{{link}}")
+
     def _fill(self, text: str | None, inv: Invoice, fallback: str) -> str:
         text = text or fallback
-        return text.replace("{link}", inv.payment_link_url or "(link pending)")
+        if inv.payment_link_url:
+            return text.replace("{link}", inv.payment_link_url)
+        # No link and none obtainable: drop the sentence that promised one rather than ship a
+        # placeholder. Callers that need a link create it before composing.
+        cleaned = re.sub(r"[^.!?\n]*\{link\}[^.!?\n]*[.!?]?", "", text)
+        return re.sub(r"[ \t]{2,}", " ", cleaned).strip()
 
     # ---- handlers -----------------------------------------------------------------------
     def _wait(self, d: Decision, p: dict, inv: Invoice, day: int) -> ExecResult:
@@ -131,6 +145,12 @@ class Toolbox:
 
     def _send_reminder(self, d: Decision, p: dict, inv: Invoice, day: int) -> ExecResult:
         debtor = self.debtors[inv.debtor_id]
+        # A reminder has to be actionable. An LLM may reasonably pick a reminder before ever
+        # creating a link, and "pay here: {link}" with nothing to fill in is a broken message,
+        # so create one now rather than sending a placeholder.
+        if not inv.payment_link_url:
+            if self._new_link(inv, day, inv.outstanding_paise, False, 0, 7, "reminder") is None:
+                return ExecResult(False, Verdict(True, "ok", ""), "gateway unavailable; deferred")
         text = self._fill(
             d.message,
             inv,

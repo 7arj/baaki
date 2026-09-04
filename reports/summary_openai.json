@@ -42,25 +42,25 @@
     "none": {
       "mode": "none",
       "brain": "none",
-      "horizon_days": 10,
+      "horizon_days": 45,
       "invoices": 120,
       "debtors": 40,
       "total_receivable_paise": 829506300,
       "total_receivable": "\u20b982,95,063.00",
-      "recovered_paise": 211135100,
-      "recovered": "\u20b921,11,351.00",
-      "recovery_rate_pct": 25.5,
+      "recovered_paise": 265845700,
+      "recovered": "\u20b926,58,457.00",
+      "recovery_rate_pct": 32.0,
       "recovered_via_link_paise": 0,
       "recovered_via_human_paise": 0,
-      "recovered_organic_paise": 211135100,
+      "recovered_organic_paise": 265845700,
       "discount_written_off_paise": 0,
       "invoices_by_status": {
-        "open": 87,
-        "paid": 33
+        "open": 79,
+        "paid": 41
       },
       "contacts_sent": 0,
       "contacts_per_lakh_recovered": 0.0,
-      "median_days_to_cash": 5,
+      "median_days_to_cash": 7,
       "policy_denials": 0,
       "policy_violations_unenforced": 0,
       "gateway_failures_handled": 0,
@@ -70,80 +70,113 @@
       "llm_unavailable": null,
       "razorpay_calls": 0,
       "exceptions": [],
-      "still_open_unresolved": 87,
-      "still_open_outstanding_paise": 618371200
+      "still_open_unresolved": 79,
+      "still_open_outstanding_paise": 563660600
     },
     "naive": {
       "mode": "naive",
       "brain": "naive",
-      "horizon_days": 10,
+      "horizon_days": 45,
       "invoices": 120,
       "debtors": 40,
       "total_receivable_paise": 829506300,
       "total_receivable": "\u20b982,95,063.00",
-      "recovered_paise": 426633000,
-      "recovered": "\u20b942,66,330.00",
-      "recovery_rate_pct": 51.4,
-      "recovered_via_link_paise": 0,
+      "recovered_paise": 429923500,
+      "recovered": "\u20b942,99,235.00",
+      "recovery_rate_pct": 51.8,
+      "recovered_via_link_paise": 351113600,
       "recovered_via_human_paise": 0,
-      "recovered_organic_paise": 77653500,
+      "recovered_organic_paise": 78809900,
       "discount_written_off_paise": 0,
       "invoices_by_status": {
-        "open": 58,
-        "paid": 62
+        "open": 57,
+        "paid": 63
       },
-      "contacts_sent": 412,
-      "contacts_per_lakh_recovered": 9.66,
-      "median_days_to_cash": 4,
+      "contacts_sent": 1240,
+      "contacts_per_lakh_recovered": 28.84,
+      "median_days_to_cash": 3,
       "policy_denials": 0,
-      "policy_violations_unenforced": 127,
+      "policy_violations_unenforced": 919,
       "gateway_failures_handled": 0,
-      "decisions": 412,
+      "decisions": 1240,
       "decision_sources": {
-        "naive": 412
+        "naive": 1240
       },
       "llm": null,
       "llm_unavailable": null,
-      "razorpay_calls": 0,
+      "razorpay_calls": 120,
       "exceptions": [],
-      "still_open_unresolved": 58,
-      "still_open_outstanding_paise": 402873300
+      "still_open_unresolved": 57,
+      "still_open_outstanding_paise": 399582800
     },
     "agent": {
       "mode": "agent",
-      "brain": "rules",
-      "horizon_days": 10,
+      "brain": "openai+rules",
+      "horizon_days": 45,
       "invoices": 120,
       "debtors": 40,
       "total_receivable_paise": 829506300,
       "total_receivable": "\u20b982,95,063.00",
-      "recovered_paise": 562387407,
-      "recovered": "\u20b956,23,874.07",
-      "recovery_rate_pct": 67.8,
-      "recovered_via_link_paise": 484550122,
-      "recovered_via_human_paise": 25888800,
-      "recovered_organic_paise": 49790700,
-      "discount_written_off_paise": 2157785,
+      "recovered_paise": 530688055,
+      "recovered": "\u20b953,06,880.55",
+      "recovery_rate_pct": 64.0,
+      "recovered_via_link_paise": 375308505,
+      "recovered_via_human_paise": 80653850,
+      "recovered_organic_paise": 74725700,
+      "discount_written_off_paise": 0,
       "invoices_by_status": {
-        "partially_paid": 15,
-        "paid": 72,
-        "open": 14,
-        "stopped": 8,
-        "escalated": 11
+        "open": 4,
+        "paid": 76,
+        "escalated": 40
       },
-      "contacts_sent": 294,
-      "contacts_per_lakh_recovered": 5.23,
-      "median_days_to_cash": 4,
-      "policy_denials": 0,
+      "contacts_sent": 301,
+      "contacts_per_lakh_recovered": 5.67,
+      "median_days_to_cash": 5,
+      "policy_denials": 1,
       "policy_violations_unenforced": 0,
-      "gateway_failures_handled": 0,
-      "decisions": 385,
+      "gateway_failures_handled": 2,
+      "decisions": 405,
       "decision_sources": {
-        "rules": 385
+        "openai": 335,
+        "openai+rules(rogue)": 1,
+        "openai->rules": 69
       },
-      "llm": null,
-      "llm_unavailable": "openai unavailable (OpenAIError); ran on the rules brain",
-      "razorpay_calls": 232,
+      "llm": {
+        "provider": "openai",
+        "model": "gpt-5-mini",
+        "calls": 335,
+        "fallbacks": 69,
+        "input_tokens": 491500,
+        "output_tokens": 140882,
+        "cache_read_tokens": 0,
+        "estimated_cost_usd": 0.4046,
+        "budget_cap": 400,
+        "budget_exhausted_at": null,
+        "errors": [
+          "day 3 inv_0050: SimulatedOutage: injected LLM outage",
+          "day 3 inv_0010: SimulatedOutage: injected LLM outage",
+          "day 3 inv_0065: SimulatedOutage: injected LLM outage",
+          "day 3 inv_0031: SimulatedOutage: injected LLM outage",
+          "day 3 inv_0043: SimulatedOutage: injected LLM outage",
+          "day 3 inv_0039: SimulatedOutage: injected LLM outage",
+          "day 3 inv_0032: SimulatedOutage: injected LLM outage",
+          "day 3 inv_0026: SimulatedOutage: injected LLM outage",
+          "day 3 inv_0052: SimulatedOutage: injected LLM outage",
+          "day 3 inv_0024: SimulatedOutage: injected LLM outage",
+          "day 3 inv_0061: SimulatedOutage: injected LLM outage",
+          "day 3 inv_0115: SimulatedOutage: injected LLM outage",
+          "day 3 inv_0033: SimulatedOutage: injected LLM outage",
+          "day 3 inv_0111: SimulatedOutage: injected LLM outage",
+          "day 3 inv_0067: SimulatedOutage: injected LLM outage",
+          "day 3 inv_0063: SimulatedOutage: injected LLM outage",
+          "day 3 inv_0108: SimulatedOutage: injected LLM outage",
+          "day 3 inv_0104: SimulatedOutage: injected LLM outage",
+          "day 3 inv_0030: SimulatedOutage: injected LLM outage",
+          "day 3 inv_0102: SimulatedOutage: injected LLM outage"
+        ]
+      },
+      "llm_unavailable": null,
+      "razorpay_calls": 138,
       "exceptions": [
         {
           "invoice": "inv_0024",
@@ -151,26 +184,62 @@
           "outstanding": "\u20b92,40,866.00",
           "outstanding_paise": 24086600,
           "status": "escalated",
-          "reason": "dispute raised: 'This invoice is wrong \u2014 20 cartons were short-shipped. Not paying till corrected.'",
+          "reason": "Debtor explicitly disputes the invoice (quality rejected / requests credit note). Policy requires escalation to a human when the debtor disputes. Also pause further collection and request QC evidence to enable resolution.",
           "last_inbound": "Quality was rejected by our QC, invoice should be credit-noted."
         },
         {
-          "invoice": "inv_0026",
-          "debtor": "Bose Electricals",
-          "outstanding": "\u20b92,40,257.00",
-          "outstanding_paise": 24025700,
+          "invoice": "inv_0050",
+          "debtor": "Verma Pharma Distributors",
+          "outstanding": "\u20b92,40,785.00",
+          "outstanding_paise": 24078500,
           "status": "escalated",
-          "reason": "dispute raised: 'This invoice is wrong \u2014 20 cartons were short-shipped. Not paying till corrected.'",
-          "last_inbound": "This invoice is wrong \u2014 20 cartons were short-shipped. Not paying till corrected."
+          "reason": "Reached automated contact cap (6 messages). Invoice inv_0050 is 44 days overdue, outstanding \u20b92,40,785.00. Debtor Verma Pharma Distributors (Pune) has 7 prior invoices with 6 prior late payments; avg days late 37.7. Risk score 0.951. No payments received. Recommend human follow-up to negotiate payment (possible hold on future deliveries, request payment schedule, or decide next steps).",
+          "last_inbound": null
         },
         {
-          "invoice": "inv_0030",
-          "debtor": "Mehta Ceramics",
-          "outstanding": "\u20b91,20,240.00",
-          "outstanding_paise": 12024000,
+          "invoice": "inv_0065",
+          "debtor": "Chawla Pharma Distributors",
+          "outstanding": "\u20b92,40,777.00",
+          "outstanding_paise": 24077700,
           "status": "escalated",
-          "reason": "dispute raised: 'Quality was rejected by our QC, invoice should be credit-noted.'",
-          "last_inbound": "Quality was rejected by our QC, invoice should be credit-noted."
+          "reason": "Customer reported cash-flow hardship and requested to split the invoice. Offering an installment plan is appropriate, but immediate automated plan creation is blocked by the 3-day contact-gap policy; escalate to a human as required by policy for hardship cases.",
+          "last_inbound": "Cash flow is bad, can we split this?"
+        },
+        {
+          "invoice": "inv_0010",
+          "debtor": "Chawla Hardware",
+          "outstanding": "\u20b92,40,403.00",
+          "outstanding_paise": 24040300,
+          "status": "escalated",
+          "reason": "Debtor reports cash-flow hardship and requests to split payment. Offer_installment_plan blocked by contact-gap rule (last contact 2 days ago; min gap 3 days). Customer has history of late payments and prior partials; human review recommended to approve a payment plan or hardship handling.",
+          "last_inbound": "Cash flow is bad, can we split this?"
+        },
+        {
+          "invoice": "inv_0039",
+          "debtor": "Bose Hardware",
+          "outstanding": "\u20b92,40,057.00",
+          "outstanding_paise": 24005700,
+          "status": "escalated",
+          "reason": "Debtor reports cash-flow hardship and requests to split the invoice. Per policy, hardship cases must be escalated and offering an installment plan is currently blocked because last contact was 2 days ago (minimum 3 days). Escalation needed so a human can approve a plan and authorize a response.",
+          "last_inbound": "Cash flow is bad, can we split this?"
+        },
+        {
+          "invoice": "inv_0061",
+          "debtor": "Chawla Hardware",
+          "outstanding": "\u20b91,20,333.00",
+          "outstanding_paise": 12033300,
+          "status": "escalated",
+          "reason": "Debtor replied proposing to pay half now and the rest next month. Creating an installment plan or sending payment-link/ reminder is blocked because last contact was 2 days ago (policy requires 3-day gap). Policy instructs to escalate when the customer requests a plan but system actions are blocked. Escalate so a human can review and approve a split-payment arrangement or respond with terms; customer has a high risk score and history of late payments, so human review is warranted.",
+          "last_inbound": "Can we pay half now and the rest next month?"
+        },
+        {
+          "invoice": "inv_0052",
+          "debtor": "Joshi Logistics",
+          "outstanding": "\u20b987,677.47",
+          "outstanding_paise": 8767747,
+          "status": "escalated",
+          "reason": "Contact cap reached after 6 automated outreaches. Invoice inv_0052 (packaging film \u2014 PO 6488) partially paid; outstanding \u20b987,677.47 (paise 8,767,747), 43 days overdue. Debtor previously offered 40% and paid ~\u20b987,669.53 on day 8. High risk_score 0.939 and history of late payments. Recommend human review and decide next step (authorise further contact, offer a formal installment plan up to 3 instalments, or negotiate a small early-settlement discount up to policy limit).",
+          "last_inbound": "We can do 40% today, balance in 3 weeks."
         },
         {
           "invoice": "inv_0102",
@@ -178,8 +247,8 @@
           "outstanding": "\u20b985,856.00",
           "outstanding_paise": 8585600,
           "status": "escalated",
-          "reason": "dispute raised: 'Quality was rejected by our QC, invoice should be credit-noted.'",
-          "last_inbound": "Quality was rejected by our QC, invoice should be credit-noted."
+          "reason": "Debtor claims payment was made in July; possible payment reconciliation issue or misapplied payment.",
+          "last_inbound": "We already paid this in July, check your books."
         },
         {
           "invoice": "inv_0038",
@@ -187,16 +256,34 @@
           "outstanding": "\u20b985,624.00",
           "outstanding_paise": 8562400,
           "status": "escalated",
-          "reason": "dispute raised: 'We already paid this in July, check your books.'",
-          "last_inbound": "We already paid this in July, check your books."
+          "reason": "Debtor explicitly disputes the invoice (claims short-shipment). Policy requires escalation to a human for disputes. Recent contact was 1 day ago so other outbound actions are blocked; escalate ensures operations/sales can verify the claim and decide correction before further collection.",
+          "last_inbound": "This invoice is wrong \u2014 20 cartons were short-shipped. Not paying till corrected."
+        },
+        {
+          "invoice": "inv_0067",
+          "debtor": "Nair Logistics",
+          "outstanding": "\u20b985,253.00",
+          "outstanding_paise": 8525300,
+          "status": "escalated",
+          "reason": "Reached max automated contacts (6); invoice inv_0067 is 30 days overdue, outstanding \u20b985,253.00, high risk score 0.924, debtor Nair Logistics (prior late count 3, avg days late 31.3). No inbound response. Recommend human outreach to negotiate payment or decide next steps.",
+          "last_inbound": null
         },
         {
           "invoice": "inv_0111",
           "debtor": "Pillai Electricals",
           "outstanding": "\u20b985,213.00",
           "outstanding_paise": 8521300,
-          "status": "stopped",
-          "reason": "no resolution after 4 automated contacts; recommend a human call or write-off review",
+          "status": "escalated",
+          "reason": "Debtor (Pillai Electricals) reports cash-flow problems and requests to split payment. Policy blocks auto-offer due to contact-gap (last contact 1 day ago; min 3 days). Escalate for manual review and to propose an installment plan (max 3 installments, min first installment 25% or as agreed).",
+          "last_inbound": "Cash flow is bad, can we split this?"
+        },
+        {
+          "invoice": "inv_0080",
+          "debtor": "Chawla Hardware",
+          "outstanding": "\u20b985,064.00",
+          "outstanding_paise": 8506400,
+          "status": "escalated",
+          "reason": "Customer promised 40% on day 9 and remainder in 3 weeks but promised_pay_day has passed without payment. Invoice inv_0080 is 50 days overdue, last contact 23 days ago, high risk_score 0.933 and history of late payments. Recommend human intervention to pursue payment and decide next steps.",
           "last_inbound": "We can do 40% today, balance in 3 weeks."
         },
         {
@@ -204,121 +291,256 @@
           "debtor": "Verma Pharma Distributors",
           "outstanding": "\u20b960,066.00",
           "outstanding_paise": 6006600,
-          "status": "stopped",
-          "reason": "no resolution after 4 automated contacts; recommend a human call or write-off review",
-          "last_inbound": "call later"
+          "status": "escalated",
+          "reason": "Automated contact cap (6) has been reached and further automated reminders or payment-link offers are blocked. Debtor is high-risk with repeated late payments and invoice is significantly overdue (60 days). Escalation to a human collector is the appropriate next step.",
+          "last_inbound": null
         },
         {
-          "invoice": "inv_0110",
-          "debtor": "Rao Electricals",
-          "outstanding": "\u20b932,926.00",
-          "outstanding_paise": 3292600,
+          "invoice": "inv_0063",
+          "debtor": "Bose Hardware",
+          "outstanding": "\u20b957,323.48",
+          "outstanding_paise": 5732348,
           "status": "escalated",
-          "reason": "dispute raised: 'This invoice is wrong \u2014 20 cartons were short-shipped. Not paying till corrected.'",
-          "last_inbound": "This invoice is wrong \u2014 20 cartons were short-shipped. Not paying till corrected."
-        },
-        {
-          "invoice": "inv_0079",
-          "debtor": "Rao Electricals",
-          "outstanding": "\u20b932,079.00",
-          "outstanding_paise": 3207900,
-          "status": "escalated",
-          "reason": "dispute raised: 'Quality was rejected by our QC, invoice should be credit-noted.'",
-          "last_inbound": "Quality was rejected by our QC, invoice should be credit-noted."
+          "reason": "Automated contact cap (6) has been reached and the invoice remains partially unpaid with a high risk score and prior late history. The customer made a partial payment but has not committed a firm date for the remaining balance. Human intervention is appropriate to negotiate and obtain a firm commitment while preserving the relationship.",
+          "last_inbound": "We can do 40% today, balance in 3 weeks."
         },
         {
           "invoice": "inv_0017",
           "debtor": "Desai Garments",
-          "outstanding": "\u20b923,486.87",
-          "outstanding_paise": 2348687,
+          "outstanding": "\u20b945,770.00",
+          "outstanding_paise": 4577000,
           "status": "escalated",
-          "reason": "financial hardship reported: 'We are winding up the firm.'",
-          "last_inbound": "We are winding up the firm."
+          "reason": "Customer requested to pay half now and the rest next month. Automated offer actions are blocked due to minimum contact gap (1 day since last contact; required 3 days). Requires human decision to approve/installment terms.",
+          "last_inbound": "Can we pay half now and the rest next month?"
         },
         {
           "invoice": "inv_0109",
           "debtor": "Joshi Logistics",
-          "outstanding": "\u20b919,577.21",
-          "outstanding_paise": 1957721,
-          "status": "stopped",
-          "reason": "no resolution after 4 automated contacts; recommend a human call or write-off review",
-          "last_inbound": "We can do 40% today, balance in 3 weeks."
+          "outstanding": "\u20b945,625.00",
+          "outstanding_paise": 4562500,
+          "status": "escalated",
+          "reason": "Debtor reports cash-flow difficulty and requests to split payment. Offer_installment_plan is currently blocked by contact-gap policy (last contact 1 day ago, min gap 3 days). High risk score (0.937), prior late behaviour (8/9). Needs human review to approve a hardship installment plan or alternative arrangement.",
+          "last_inbound": "Cash flow is bad, can we split this?"
         },
         {
-          "invoice": "inv_0036",
+          "invoice": "inv_0112",
+          "debtor": "Verma Pharma Distributors",
+          "outstanding": "\u20b945,381.00",
+          "outstanding_paise": 4538100,
+          "status": "escalated",
+          "reason": "Automated contact cap reached (6). Debtor is high-risk with repeated late history and invoice now 21 days overdue. Policy allows escalation to human \u2014 next step is a personal call and tailored resolution (installments or small discount) or dispute handling.",
+          "last_inbound": null
+        },
+        {
+          "invoice": "inv_0049",
+          "debtor": "Nair Logistics",
+          "outstanding": "\u20b945,372.00",
+          "outstanding_paise": 4537200,
+          "status": "escalated",
+          "reason": "Reached max automated contacts (6) with no payment; invoice 49 days overdue, high risk score 0.916. Request human intervention to negotiate or decide next steps.",
+          "last_inbound": null
+        },
+        {
+          "invoice": "inv_0029",
+          "debtor": "Chawla Pharma Distributors",
+          "outstanding": "\u20b932,471.00",
+          "outstanding_paise": 3247100,
+          "status": "escalated",
+          "reason": "Debtor reports cash-flow hardship and explicitly asked to split the payment. Policy requires escalation for hardship and several customer-contact actions are currently blocked by the minimum gap (2 days since last contact; min 3 days). Escalate to a human agent to review and propose an appropriate installment plan or other concessions.",
+          "last_inbound": "Cash flow is bad, can we split this?"
+        },
+        {
+          "invoice": "inv_0077",
+          "debtor": "Mehta Autoparts",
+          "outstanding": "\u20b932,039.00",
+          "outstanding_paise": 3203900,
+          "status": "escalated",
+          "reason": "Reached automated contact cap (6). Invoice inv_0077 is 57 days overdue, outstanding \u20b932,039.00, high risk score 0.908, debtor has prior late history. Last inbound: 'who is this?' on day 15. No promised pay date.",
+          "last_inbound": "who is this?"
+        },
+        {
+          "invoice": "inv_0069",
           "debtor": "Joshi Logistics",
-          "outstanding": "\u20b918,380.25",
-          "outstanding_paise": 1838025,
-          "status": "stopped",
-          "reason": "no resolution after 4 automated contacts; recommend a human call or write-off review",
+          "outstanding": "\u20b930,128.50",
+          "outstanding_paise": 3012850,
+          "status": "escalated",
+          "reason": "Debtor replied asking to pay half now and the rest next month (partial_offer). Policy blocks offering an installment plan or creating a payment link because last contact was 1 day ago and minimum gap is 3 days. Given the high risk score (0.938), history of late payments (8 of 9 prior invoices), and the debtor's explicit request for a split payment, escalate to a human collector so they can review and decide an appropriate payment arrangement. Do not send another outbound message now to respect the contact-gap rule.",
           "last_inbound": "Can we pay half now and the rest next month?"
         },
         {
           "invoice": "inv_0013",
           "debtor": "Chawla Hardware",
-          "outstanding": "\u20b918,186.75",
-          "outstanding_paise": 1818675,
-          "status": "stopped",
-          "reason": "no resolution after 4 automated contacts; recommend a human call or write-off review",
+          "outstanding": "\u20b924,249.00",
+          "outstanding_paise": 2424900,
+          "status": "escalated",
+          "reason": "Debtor requests splitting payment due to cash-flow issues but minimum contact gap prevents automated plan. Please review and approve an installment plan or alternative arrangement.",
+          "last_inbound": "Cash flow is bad, can we split this?"
+        },
+        {
+          "invoice": "inv_0018",
+          "debtor": "Banerjee Textiles",
+          "outstanding": "\u20b922,564.00",
+          "outstanding_paise": 2256400,
+          "status": "escalated",
+          "reason": "Debtor offered to pay 50% now and remainder next month; policy blocks automated offer today due to contact-gap. Recommend human approval to accept 50% now (\u20b922,564.00) and balance in 30 days. High risk score and repeated lateness noted; require human review before committing.",
+          "last_inbound": "Can we pay half now and the rest next month?"
+        },
+        {
+          "invoice": "inv_0091",
+          "debtor": "Chawla Foods",
+          "outstanding": "\u20b919,357.00",
+          "outstanding_paise": 1935700,
+          "status": "escalated",
+          "reason": "Invoice inv_0091 (\u20b919,357.00) is 21 days overdue, contact_count 6 reached and automated contact cap hit. Debtor Chawla Foods has high risk score (0.937) and a history of late payments (9/10). No payment received and no inbound response. Please review for human-led outreach (phone call or negotiated plan) and decide next steps.",
+          "last_inbound": null
+        },
+        {
+          "invoice": "inv_0081",
+          "debtor": "Chawla Hardware",
+          "outstanding": "\u20b919,154.00",
+          "outstanding_paise": 1915400,
+          "status": "escalated",
+          "reason": "Debtor (Chawla Hardware) reports cash-flow hardship and requested to 'split this'. Customer is 45 days overdue, outstanding \u20b919,154.00, contact_count 4, last contact 1 day ago so automated plan/offer actions are blocked by min-gap policy. Risk score high (0.926). Prior late history: 7 of 12. Please advise allowable installment plan or manual outreach.",
+          "last_inbound": "Cash flow is bad, can we split this?"
+        },
+        {
+          "invoice": "inv_0087",
+          "debtor": "Pillai Prints",
+          "outstanding": "\u20b918,633.00",
+          "outstanding_paise": 1863300,
+          "status": "escalated",
+          "reason": "Reached automated contact cap (6) without payment. Invoice inv_0087 \u2014 Pillai Prints, Surat. Outstanding \u20b918,633.00 (1,863,300 paise), 19 days overdue. High risk score 0.939; prior customer history: 8 prior invoices, 6 prior late, avg days late 40.5. No inbound response. Recommend human follow-up: (1) phone call to accounts contact at Pillai Prints to confirm reasons for non-payment; (2) if hardship, consider offering installment plan up to 3 installments with first installment >=25% and intervals <=30 days; (3) if willing to settle immediately, offer small early-settlement discount within policy (max 5%) only if days_overdue >=21 \u2014 note currently 19 days so suggest wait 2 days or offer installment instead; (4) document any promise-to-pay date and do not send further automated reminders until that date. Please take over contact and record outcomes.",
+          "last_inbound": null
+        },
+        {
+          "invoice": "inv_0062",
+          "debtor": "Joshi Logistics",
+          "outstanding": "\u20b916,319.50",
+          "outstanding_paise": 1631950,
+          "status": "escalated",
+          "reason": "Debtor reports cash-flow hardship and requested to split the invoice. Offering an installment plan is reasonable, but policy blocks offering plans now because last contact was 1 day ago (minimum gap 3 days). Policy also requires escalation for hardship. Escalating to a human ensures a reviewed, allowed proposal and maintains relationship; message asks for the debtor's preferred split to speed resolution.",
           "last_inbound": "Cash flow is bad, can we split this?"
         },
         {
           "invoice": "inv_0099",
           "debtor": "Bose Hardware",
-          "outstanding": "\u20b916,814.30",
-          "outstanding_paise": 1681430,
+          "outstanding": "\u20b916,298.00",
+          "outstanding_paise": 1629800,
           "status": "escalated",
-          "reason": "financial hardship reported: 'Business is shut since June, we have no funds right now.'",
-          "last_inbound": "Business is shut since June, we have no funds right now."
+          "reason": "Automated contact cap reached (6) and customer previously promised a 40% partial payment but no payment/reference recorded. Policy allows escalation to human; human intervention (phone/email) is the next appropriate and cost-effective step to secure payment or negotiate a formal plan.",
+          "last_inbound": "We can do 40% today, balance in 3 weeks."
         },
         {
-          "invoice": "inv_0081",
-          "debtor": "Chawla Hardware",
-          "outstanding": "\u20b914,365.50",
-          "outstanding_paise": 1436550,
-          "status": "stopped",
-          "reason": "no resolution after 4 automated contacts; recommend a human call or write-off review",
+          "invoice": "inv_0015",
+          "debtor": "Banerjee Textiles",
+          "outstanding": "\u20b912,454.00",
+          "outstanding_paise": 1245400,
+          "status": "escalated",
+          "reason": "Customer explicitly reports cash-flow hardship and requests to split the invoice. Company policy requires escalation on hardship and outbound payment-plan actions are currently blocked due to the required 3-day contact gap. Escalating lets a human review high-risk customer history and approve any payment plan or concessions before responding.",
           "last_inbound": "Cash flow is bad, can we split this?"
         },
         {
-          "invoice": "inv_0103",
-          "debtor": "Mehta Traders",
-          "outstanding": "\u20b912,131.00",
-          "outstanding_paise": 1213100,
+          "invoice": "inv_0014",
+          "debtor": "Chawla Hardware",
+          "outstanding": "\u20b912,326.00",
+          "outstanding_paise": 1232600,
           "status": "escalated",
-          "reason": "dispute raised: 'Quality was rejected by our QC, invoice should be credit-noted.'",
-          "last_inbound": "Quality was rejected by our QC, invoice should be credit-noted."
+          "reason": "Customer reports cash-flow hardship and asks to split the outstanding amount. Customer earlier promised 40% (due day 8) which was not received. Needs human review to propose an appropriate hardship plan or approve split/installments.",
+          "last_inbound": "Cash flow is bad, can we split this?"
         },
         {
-          "invoice": "inv_0011",
+          "invoice": "inv_0019",
+          "debtor": "Mehta Autoparts",
+          "outstanding": "\u20b912,277.00",
+          "outstanding_paise": 1227700,
+          "status": "escalated",
+          "reason": "Reached maximum automated contacts (6) for a high-risk account with no payment; invoice inv_0019 is 34 days overdue, outstanding \u20b912,277.00. Customer has prior late behaviour (7/10) and high risk score 0.913. No inbound replies. Recommend manual follow-up to decide next step (phone call, relationship manager outreach, or negotiated plan).",
+          "last_inbound": null
+        },
+        {
+          "invoice": "inv_0116",
+          "debtor": "Chawla Electricals",
+          "outstanding": "\u20b912,258.00",
+          "outstanding_paise": 1225800,
+          "status": "escalated",
+          "reason": "Customer reported cash-flow hardship and requested to split payment. Invoice inv_0116 outstanding \u20b912,258.00 (1,225,800 paise), 36 days overdue. Policy blocks automated offer now (minimum gap 3 days since last contact). Recommend human review and approve an installment plan: up to 3 installments, ~15 days between installments, first installment >=25% (proposed 306,450 paise = \u20b93,064.50). Customer has history: 9 prior invoices, 7 late, avg days late 37, 2 prior partials. Please decide and respond with formal plan or alternative.",
+          "last_inbound": "Cash flow is bad, can we split this?"
+        },
+        {
+          "invoice": "inv_0036",
           "debtor": "Joshi Logistics",
-          "outstanding": "\u20b910,263.31",
-          "outstanding_paise": 1026331,
-          "status": "stopped",
-          "reason": "no resolution after 4 automated contacts; recommend a human call or write-off review",
-          "last_inbound": "We can do 40% today, balance in 3 weeks."
+          "outstanding": "\u20b912,253.50",
+          "outstanding_paise": 1225350,
+          "status": "escalated",
+          "reason": "Debtor explicitly offered a partial payment (half now, rest next month). Automated creation of installment plan or payment link is blocked because contact cap (6) has been reached, so escalation to a human agent is the least-cost allowed next step. Provide clear recommendation and options to speed resolution while protecting merchant interests.",
+          "last_inbound": "Can we pay half now and the rest next month?"
+        },
+        {
+          "invoice": "inv_0023",
+          "debtor": "Verma Pharma Distributors",
+          "outstanding": "\u20b912,229.00",
+          "outstanding_paise": 1222900,
+          "status": "escalated",
+          "reason": "Invoice inv_0023 (\u20b912,229.00) is 28 days overdue, contact_count=6 (max reached), high risk_score 0.948, customer has 6 prior late payments and avg_days_late 37.7. Previous automated messages included a 3% early-settlement offer. Recommend urgent human outreach: personal phone call to accounts payable contact in Verma Pharma Distributors, confirm reason for delay, request firm promised pay date, consider holding further shipments, and decide whether to offer a structured installment plan or revised settlement (human to approve). Please review for dispute or hardship; escalate further if customer disputes.",
+          "last_inbound": null
+        },
+        {
+          "invoice": "inv_0106",
+          "debtor": "Pillai Electricals",
+          "outstanding": "\u20b912,055.00",
+          "outstanding_paise": 1205500,
+          "status": "escalated",
+          "reason": "Debtor (Pillai Electricals) proposes to pay 50% now and the rest next month. System blocks creating payment links or offering plans due to contact-gap rule. Recommend human review and approve a 2-installment plan: 50% now (\u20b96,027.50 / 602750 paise) via existing link, remaining 50% due in 30 days. Note: invoice inv_0106 outstanding \u20b912,055.00 (1205500 paise), 34 days overdue, risk_score 0.931, prior_late_count 3, prior_partial_payments 3. Last outbound contact was 1 day ago; debtor sent inbound request today.",
+          "last_inbound": "Can we pay half now and the rest next month?"
+        },
+        {
+          "invoice": "inv_0006",
+          "debtor": "Mehta Autoparts",
+          "outstanding": "\u20b912,050.00",
+          "outstanding_paise": 1205000,
+          "status": "escalated",
+          "reason": "Debtor inbound message 'who is this?' \u2014 unclear identity/intent and minimum contact gap prevents automated reply. Request human review.",
+          "last_inbound": "who is this?"
+        },
+        {
+          "invoice": "inv_0084",
+          "debtor": "Bose Hardware",
+          "outstanding": "\u20b99,384.00",
+          "outstanding_paise": 938400,
+          "status": "escalated",
+          "reason": "Debtor explicitly requested to split the invoice (hardship). Offering an instalment plan is appropriate, but the system blocks creating/offering a plan now due to the minimum gap since last contact (2 days < 3 days). Per policy, escalate to a human so they can review and respond. Message acknowledges the debtor, asks for helpful details, and remains courteous and brief.",
+          "last_inbound": "Cash flow is bad, can we split this?"
         },
         {
           "invoice": "inv_0035",
           "debtor": "Nair Logistics",
           "outstanding": "\u20b99,316.00",
           "outstanding_paise": 931600,
-          "status": "stopped",
-          "reason": "no resolution after 4 automated contacts; recommend a human call or write-off review",
-          "last_inbound": "call later"
+          "status": "escalated",
+          "reason": "Reached max automated contact cap (6); invoice inv_0035 \u20b99,316 overdue 39 days, high risk_score 0.914, debtor previously asked 'who is this?'. Please review and advise next steps (manual outreach, updated contact details, or approval for further offers).",
+          "last_inbound": "who is this?"
         },
         {
-          "invoice": "inv_0084",
-          "debtor": "Bose Hardware",
-          "outstanding": "\u20b95,587.65",
-          "outstanding_paise": 558765,
+          "invoice": "inv_0054",
+          "debtor": "Chawla Foods",
+          "outstanding": "\u20b99,238.00",
+          "outstanding_paise": 923800,
           "status": "escalated",
-          "reason": "financial hardship reported: 'Factory flooded, operations stopped. Cannot pay currently.'",
-          "last_inbound": "Factory flooded, operations stopped. Cannot pay currently."
+          "reason": "Invoice inv_0054 (\u20b99,238.00) is 57 days overdue with 6 prior automated contacts (policy cap reached). Debtor Chawla Foods has a high risk score (0.924), a history of late payments (9 of 10 prior invoices late) and prior partials. All lower-cost actions (reminder, payment link, installment or discount offers) are blocked by contact cap. Escalate to human for review and next steps (possible manual outreach, negotiate settlement, or decide on further escalation).",
+          "last_inbound": null
+        },
+        {
+          "invoice": "inv_0076",
+          "debtor": "Mehta Autoparts",
+          "outstanding": "\u20b98,877.00",
+          "outstanding_paise": 887700,
+          "status": "escalated",
+          "reason": "Invoice inv_0076 is 44 days overdue (\u20b98,877.00). Debtor Mehta Autoparts acknowledged with 'ok' on day 17; 5-day wait period has elapsed with no payment. Automated contact cap (6) reached. Risk score 0.91 and history of late payments (7 of 10). Recommend human outreach (phone) to confirm payment timeline, consider offering a limited early-settlement discount up to 3% or a short 2\u20133 installment plan if merchant approves, or agree a firm payment date. Do not threaten; keep tone conciliatory.",
+          "last_inbound": "ok"
         }
       ],
-      "still_open_unresolved": 29,
-      "still_open_outstanding_paise": 153995309
+      "still_open_unresolved": 4,
+      "still_open_outstanding_paise": 48480600
     }
   }
 }

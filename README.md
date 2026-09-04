@@ -49,6 +49,37 @@ six behavioural archetypes; the agent never sees the archetype, only visible led
 proves the mechanics, not real-world lift. The Razorpay path is already real: test-mode SDK, signed
 webhooks, idempotent credit.
 
+### Rules playbook vs an LLM brain
+
+The same run on `gpt-5-mini`, one live API call per decision, 335 calls, $0.40.
+
+| | rules playbook | gpt-5-mini |
+|---|---:|---:|
+| recovered | **74.4%** | 64.0% |
+| messages sent | 294 | 301 |
+| conduct violations | 0 | 0 |
+| handed to a human | 34 | 40 |
+
+**The deterministic playbook won.** The LLM sent a comparable number of messages and recovered
+₹8.7L less. The reason is in its action mix: 198 reminders and 52 escalations, against only 30
+payment links, 2 installment plans and 2 discounts. It reaches for a reminder where the playbook
+reaches for a link or a plan. And 20 of its 52 escalations cite the three-day contact gap as the
+reason: it read "this action is blocked today" as "a human should take this", where the playbook
+simply waits a day.
+
+What it is clearly better at is explaining itself. Every escalation carries a specific rationale a
+human can act on, quoting the customer and the rule, rather than a template string. That is the
+argument for using it on reply handling and message drafting while leaving sequencing to the
+playbook.
+
+Both ran zero conduct violations through the same gate, and both absorbed the injected day-3 LLM
+outage: 69 decisions fell back to the rules brain and the run continued.
+
+Swapping the brain also found a real bug that the rules path could not have. The playbook always
+creates a payment link first, so `{link}` was always fillable. The LLM often sends a reminder first,
+which exposed messages reading *"pay securely here: (link pending)"*. Reminders now create a link,
+and the send boundary refuses any message with an unfilled placeholder.
+
 ## Why it is safe to let loose on money
 
 ```
@@ -99,20 +130,25 @@ uv run python -m baaki app    # http://127.0.0.1:8080 · demo@baaki.app / baaki-
 uv sync
 uv run python -m baaki run --demo-faults   # three strategies, injected faults
 uv run python -m baaki serve               # simulation dashboard on :8000
-uv run pytest                              # 70 tests
+uv run pytest                              # 90 tests
 ```
 
 Optional LLM. The agent is provider-agnostic; both brains get the same prompt, schema and
 allowed-action list, and both are re-checked by the same gate.
 
 ```bash
-export OPENAI_API_KEY=sk-...          # --brain openai, default gpt-5
+export OPENAI_API_KEY=sk-...          # --brain openai, default gpt-5-mini
 export ANTHROPIC_API_KEY=sk-ant-...   # --brain claude, default claude-opus-5
 
 uv run python -m baaki run --brain openai --demo-faults
+uv run python -m baaki run --brain openai --model gpt-5-nano --max-llm-calls 50
 ```
 
-A missing or invalid key completes the run on the rules brain and says so.
+A missing or invalid key completes the run on the rules brain and says so. `--max-llm-calls` is a
+hard spend cap: past it the run finishes deterministically rather than stopping, so a capped run
+still produces complete numbers. Every run reports tokens and an estimated cost.
+`uv run python -m baaki doctor` checks which keys and models are actually reachable before you spend
+anything.
 
 Optional Razorpay. Set `RAZORPAY_KEY_ID` and `RAZORPAY_KEY_SECRET` (test mode only, live keys are
 refused) and the Toolbox creates real Payment Links. Point a webhook at `/webhooks/razorpay`.
@@ -151,5 +187,5 @@ baaki/
   server.py       simulation dashboard
   app/            the product: models, auth, service, billing, web, templates
 migrations/       alembic
-tests/            70 tests
+tests/            90 tests
 ```

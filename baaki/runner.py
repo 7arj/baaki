@@ -10,7 +10,8 @@ from pathlib import Path
 from typing import Any
 
 from .audit import AuditLog
-from .brain import ClaudeBrain, DecisionContext, NaiveBrain, NoneBrain, OpenAIBrain, ResilientBrain, RogueWrapper, RuleBrain
+from .brain import (ClaudeBrain, DecisionContext, NaiveBrain, NoneBrain, OpenAIBrain, ResilientBrain,
+                    RogueWrapper, RuleBrain, estimate_cost_usd)
 from .data import generate
 from .domain import ActionType, CONTACT_ACTIONS, Debtor, Intent, Invoice, InvoiceStatus, rupees, sim_datetime
 from .policy import Policy, PolicyBounds
@@ -40,6 +41,7 @@ class RunConfig:
     risk_model: RiskModel | None = None
     out_dir: Path | None = None
     llm_effort: str = "low"
+    max_llm_calls: int | None = None   # hard spend cap; the rest of the run uses the rules brain
 
 
 class Simulation:
@@ -73,7 +75,7 @@ class Simulation:
         if llm_cls:
             try:
                 primary = llm_cls(model=cfg.model, effort=cfg.llm_effort, outage_days=cfg.faults.llm_outage_days)
-                brain = ResilientBrain(primary, rules, self.audit)
+                brain = ResilientBrain(primary, rules, self.audit, max_calls=cfg.max_llm_calls)
             except Exception as e:
                 # No key, missing SDK, bad config: degrade to the deterministic brain for the whole
                 # run rather than crashing. Recorded so the report never silently overstates the LLM.
@@ -210,7 +212,12 @@ class Simulation:
         b = self.brain.inner if isinstance(self.brain, RogueWrapper) else self.brain
         if isinstance(b, ResilientBrain):
             p = b.primary
-            llm = {"provider": p.provider, "model": p.model, "calls": p.calls, "fallbacks": b.fallbacks, "input_tokens": p.input_tokens, "output_tokens": p.output_tokens, "cache_read_tokens": p.cache_read_tokens, "errors": b.errors[:20]}
+            llm = {"provider": p.provider, "model": p.model, "calls": p.calls, "fallbacks": b.fallbacks,
+                   "input_tokens": p.input_tokens, "output_tokens": p.output_tokens,
+                   "cache_read_tokens": p.cache_read_tokens,
+                   "estimated_cost_usd": estimate_cost_usd(p.model, p.input_tokens, p.output_tokens, p.cache_read_tokens),
+                   "budget_cap": b.max_calls, "budget_exhausted_at": b.budget_exhausted_at,
+                   "errors": b.errors[:20]}
         return {
             "mode": self.cfg.mode,
             "brain": getattr(self.brain, "name", "?"),
@@ -291,13 +298,13 @@ def train_risk_model(seed: int, sim_seed: int, horizon: int = 30) -> tuple[RiskM
     return model, report
 
 
-def run_all(out_dir: Path, brain: str = "rules", horizon: int = 45, seed: int = 7, sim_seed: int = 11, faults: Faults | None = None, llm_effort: str = "low", model: str | None = None) -> dict[str, Any]:
+def run_all(out_dir: Path, brain: str = "rules", horizon: int = 45, seed: int = 7, sim_seed: int = 11, faults: Faults | None = None, llm_effort: str = "low", model: str | None = None, max_llm_calls: int | None = None) -> dict[str, Any]:
     out_dir.mkdir(parents=True, exist_ok=True)
     faults = faults or Faults()
     risk, risk_report = train_risk_model(seed, sim_seed)
     results: dict[str, Any] = {"risk_model": risk_report, "runs": {}}
     for mode in ("none", "naive", "agent"):
-        cfg = RunConfig(mode=mode, brain=brain, horizon_days=horizon, seed=seed, sim_seed=sim_seed, faults=faults if mode == "agent" else Faults(), risk_model=risk if mode == "agent" else None, out_dir=out_dir, llm_effort=llm_effort, model=model)
+        cfg = RunConfig(mode=mode, brain=brain, horizon_days=horizon, seed=seed, sim_seed=sim_seed, faults=faults if mode == "agent" else Faults(), risk_model=risk if mode == "agent" else None, out_dir=out_dir, llm_effort=llm_effort, model=model, max_llm_calls=max_llm_calls)
         sim = Simulation(cfg)
         m = sim.run()
         results["runs"][mode] = m
