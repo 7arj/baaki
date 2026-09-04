@@ -29,6 +29,7 @@
       "naive": 1265
     },
     "llm": null,
+    "llm_unavailable": null,
     "razorpay_calls": 0,
     "exceptions": [],
     "still_open_unresolved": 57,

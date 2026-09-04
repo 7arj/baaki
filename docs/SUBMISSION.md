@@ -6,7 +6,7 @@
 - [ ] Push this repo to public GitHub (`gh repo create baaki --public --source=. --push`)
 - [ ] Record the 5-minute pitch (script below), upload unlisted to YouTube/Drive
 - [ ] Put the video link at the top of README
-- [ ] Optional but strong: run once with `--brain claude` and paste `reports/REPORT_claude.md` numbers into README
+- [ ] Optional but strong: run once with a real key (`--brain openai` or `--brain claude`) and paste the report numbers into README
 - [ ] Optional: create Razorpay test keys, set env, run `serve`, and screenshot a real `plink_…` in the dashboard
 - [ ] Fill the form: track = AI Revenue Recovery, repo link, video link, one-paragraph architecture (copy "What makes it safe" from README)
 
@@ -25,6 +25,7 @@
 **4:30 – 5:00 · Why me.** "I built the guardrails before the model, measured against two baselines, and made failure boring. That's how I'd want to build inside Razorpay."
 
 ## Likely interview questions
+- *Why is it provider-agnostic?* The brain is a pluggable class returning a `Decision`; the gate, audit and Razorpay layers never see the provider. `--brain openai` and `--brain claude` run the same prompt and schema. It also means a provider outage is a config change, not a rewrite.
 - *Why not let the LLM set amounts?* Policy floors are the merchant's commercial decision; the LLM picks within them. Also keeps every number auditable.
 - *How do you know the 74% isn't the simulator flattering you?* Archetype is hidden; naive baseline runs on the same simulator and gets 52%; ordering is stable across seeds (`--seed`). Absolute numbers need a pilot.
 - *What happens on a duplicate webhook?* Idempotent on `payment.id` — test covers it.

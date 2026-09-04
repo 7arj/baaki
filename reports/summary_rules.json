@@ -67,6 +67,7 @@
       "decisions": 0,
       "decision_sources": {},
       "llm": null,
+      "llm_unavailable": null,
       "razorpay_calls": 0,
       "exceptions": [],
       "still_open_unresolved": 79,
@@ -102,6 +103,7 @@
         "naive": 1265
       },
       "llm": null,
+      "llm_unavailable": null,
       "razorpay_calls": 0,
       "exceptions": [],
       "still_open_unresolved": 57,
@@ -139,6 +141,7 @@
         "rules(rogue)": 1
       },
       "llm": null,
+      "llm_unavailable": null,
       "razorpay_calls": 234,
       "exceptions": [
         {

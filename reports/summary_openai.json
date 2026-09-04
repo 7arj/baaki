@@ -1,0 +1,324 @@
+{
+  "risk_model": {
+    "label": "invoice NOT paid within 30 days with zero intervention",
+    "train_rows": 79,
+    "holdout_rows": 41,
+    "split": "by debtor id hash (40% held out); no debtor appears in both",
+    "weights": {
+      "bias": -0.652,
+      "days_overdue": -0.397,
+      "late_ratio": 2.829,
+      "avg_days_late": 1.677,
+      "partial_hist": 0.862,
+      "log_amount": 0.325
+    },
+    "holdout": {
+      "n": 41,
+      "positives": 20,
+      "tp": 20,
+      "fp": 7,
+      "fn": 0,
+      "tn": 14,
+      "precision": 0.741,
+      "recall": 1.0,
+      "f1": 0.851,
+      "threshold": 0.5
+    },
+    "holdout_at_0.7": {
+      "n": 41,
+      "positives": 20,
+      "tp": 20,
+      "fp": 4,
+      "fn": 0,
+      "tn": 17,
+      "precision": 0.833,
+      "recall": 1.0,
+      "f1": 0.909,
+      "threshold": 0.7
+    },
+    "base_rate_holdout": 0.488
+  },
+  "runs": {
+    "none": {
+      "mode": "none",
+      "brain": "none",
+      "horizon_days": 10,
+      "invoices": 120,
+      "debtors": 40,
+      "total_receivable_paise": 829506300,
+      "total_receivable": "\u20b982,95,063.00",
+      "recovered_paise": 211135100,
+      "recovered": "\u20b921,11,351.00",
+      "recovery_rate_pct": 25.5,
+      "recovered_via_link_paise": 0,
+      "recovered_via_human_paise": 0,
+      "recovered_organic_paise": 211135100,
+      "discount_written_off_paise": 0,
+      "invoices_by_status": {
+        "open": 87,
+        "paid": 33
+      },
+      "contacts_sent": 0,
+      "contacts_per_lakh_recovered": 0.0,
+      "median_days_to_cash": 5,
+      "policy_denials": 0,
+      "policy_violations_unenforced": 0,
+      "gateway_failures_handled": 0,
+      "decisions": 0,
+      "decision_sources": {},
+      "llm": null,
+      "llm_unavailable": null,
+      "razorpay_calls": 0,
+      "exceptions": [],
+      "still_open_unresolved": 87,
+      "still_open_outstanding_paise": 618371200
+    },
+    "naive": {
+      "mode": "naive",
+      "brain": "naive",
+      "horizon_days": 10,
+      "invoices": 120,
+      "debtors": 40,
+      "total_receivable_paise": 829506300,
+      "total_receivable": "\u20b982,95,063.00",
+      "recovered_paise": 426633000,
+      "recovered": "\u20b942,66,330.00",
+      "recovery_rate_pct": 51.4,
+      "recovered_via_link_paise": 0,
+      "recovered_via_human_paise": 0,
+      "recovered_organic_paise": 77653500,
+      "discount_written_off_paise": 0,
+      "invoices_by_status": {
+        "open": 58,
+        "paid": 62
+      },
+      "contacts_sent": 412,
+      "contacts_per_lakh_recovered": 9.66,
+      "median_days_to_cash": 4,
+      "policy_denials": 0,
+      "policy_violations_unenforced": 127,
+      "gateway_failures_handled": 0,
+      "decisions": 412,
+      "decision_sources": {
+        "naive": 412
+      },
+      "llm": null,
+      "llm_unavailable": null,
+      "razorpay_calls": 0,
+      "exceptions": [],
+      "still_open_unresolved": 58,
+      "still_open_outstanding_paise": 402873300
+    },
+    "agent": {
+      "mode": "agent",
+      "brain": "rules",
+      "horizon_days": 10,
+      "invoices": 120,
+      "debtors": 40,
+      "total_receivable_paise": 829506300,
+      "total_receivable": "\u20b982,95,063.00",
+      "recovered_paise": 562387407,
+      "recovered": "\u20b956,23,874.07",
+      "recovery_rate_pct": 67.8,
+      "recovered_via_link_paise": 484550122,
+      "recovered_via_human_paise": 25888800,
+      "recovered_organic_paise": 49790700,
+      "discount_written_off_paise": 2157785,
+      "invoices_by_status": {
+        "partially_paid": 15,
+        "paid": 72,
+        "open": 14,
+        "stopped": 8,
+        "escalated": 11
+      },
+      "contacts_sent": 294,
+      "contacts_per_lakh_recovered": 5.23,
+      "median_days_to_cash": 4,
+      "policy_denials": 0,
+      "policy_violations_unenforced": 0,
+      "gateway_failures_handled": 0,
+      "decisions": 385,
+      "decision_sources": {
+        "rules": 385
+      },
+      "llm": null,
+      "llm_unavailable": "openai unavailable (OpenAIError); ran on the rules brain",
+      "razorpay_calls": 232,
+      "exceptions": [
+        {
+          "invoice": "inv_0024",
+          "debtor": "Mehta Traders",
+          "outstanding": "\u20b92,40,866.00",
+          "outstanding_paise": 24086600,
+          "status": "escalated",
+          "reason": "dispute raised: 'This invoice is wrong \u2014 20 cartons were short-shipped. Not paying till corrected.'",
+          "last_inbound": "Quality was rejected by our QC, invoice should be credit-noted."
+        },
+        {
+          "invoice": "inv_0026",
+          "debtor": "Bose Electricals",
+          "outstanding": "\u20b92,40,257.00",
+          "outstanding_paise": 24025700,
+          "status": "escalated",
+          "reason": "dispute raised: 'This invoice is wrong \u2014 20 cartons were short-shipped. Not paying till corrected.'",
+          "last_inbound": "This invoice is wrong \u2014 20 cartons were short-shipped. Not paying till corrected."
+        },
+        {
+          "invoice": "inv_0030",
+          "debtor": "Mehta Ceramics",
+          "outstanding": "\u20b91,20,240.00",
+          "outstanding_paise": 12024000,
+          "status": "escalated",
+          "reason": "dispute raised: 'Quality was rejected by our QC, invoice should be credit-noted.'",
+          "last_inbound": "Quality was rejected by our QC, invoice should be credit-noted."
+        },
+        {
+          "invoice": "inv_0102",
+          "debtor": "Rao Electricals",
+          "outstanding": "\u20b985,856.00",
+          "outstanding_paise": 8585600,
+          "status": "escalated",
+          "reason": "dispute raised: 'Quality was rejected by our QC, invoice should be credit-noted.'",
+          "last_inbound": "Quality was rejected by our QC, invoice should be credit-noted."
+        },
+        {
+          "invoice": "inv_0038",
+          "debtor": "Rao Electricals",
+          "outstanding": "\u20b985,624.00",
+          "outstanding_paise": 8562400,
+          "status": "escalated",
+          "reason": "dispute raised: 'We already paid this in July, check your books.'",
+          "last_inbound": "We already paid this in July, check your books."
+        },
+        {
+          "invoice": "inv_0111",
+          "debtor": "Pillai Electricals",
+          "outstanding": "\u20b985,213.00",
+          "outstanding_paise": 8521300,
+          "status": "stopped",
+          "reason": "no resolution after 4 automated contacts; recommend a human call or write-off review",
+          "last_inbound": "We can do 40% today, balance in 3 weeks."
+        },
+        {
+          "invoice": "inv_0060",
+          "debtor": "Verma Pharma Distributors",
+          "outstanding": "\u20b960,066.00",
+          "outstanding_paise": 6006600,
+          "status": "stopped",
+          "reason": "no resolution after 4 automated contacts; recommend a human call or write-off review",
+          "last_inbound": "call later"
+        },
+        {
+          "invoice": "inv_0110",
+          "debtor": "Rao Electricals",
+          "outstanding": "\u20b932,926.00",
+          "outstanding_paise": 3292600,
+          "status": "escalated",
+          "reason": "dispute raised: 'This invoice is wrong \u2014 20 cartons were short-shipped. Not paying till corrected.'",
+          "last_inbound": "This invoice is wrong \u2014 20 cartons were short-shipped. Not paying till corrected."
+        },
+        {
+          "invoice": "inv_0079",
+          "debtor": "Rao Electricals",
+          "outstanding": "\u20b932,079.00",
+          "outstanding_paise": 3207900,
+          "status": "escalated",
+          "reason": "dispute raised: 'Quality was rejected by our QC, invoice should be credit-noted.'",
+          "last_inbound": "Quality was rejected by our QC, invoice should be credit-noted."
+        },
+        {
+          "invoice": "inv_0017",
+          "debtor": "Desai Garments",
+          "outstanding": "\u20b923,486.87",
+          "outstanding_paise": 2348687,
+          "status": "escalated",
+          "reason": "financial hardship reported: 'We are winding up the firm.'",
+          "last_inbound": "We are winding up the firm."
+        },
+        {
+          "invoice": "inv_0109",
+          "debtor": "Joshi Logistics",
+          "outstanding": "\u20b919,577.21",
+          "outstanding_paise": 1957721,
+          "status": "stopped",
+          "reason": "no resolution after 4 automated contacts; recommend a human call or write-off review",
+          "last_inbound": "We can do 40% today, balance in 3 weeks."
+        },
+        {
+          "invoice": "inv_0036",
+          "debtor": "Joshi Logistics",
+          "outstanding": "\u20b918,380.25",
+          "outstanding_paise": 1838025,
+          "status": "stopped",
+          "reason": "no resolution after 4 automated contacts; recommend a human call or write-off review",
+          "last_inbound": "Can we pay half now and the rest next month?"
+        },
+        {
+          "invoice": "inv_0013",
+          "debtor": "Chawla Hardware",
+          "outstanding": "\u20b918,186.75",
+          "outstanding_paise": 1818675,
+          "status": "stopped",
+          "reason": "no resolution after 4 automated contacts; recommend a human call or write-off review",
+          "last_inbound": "Cash flow is bad, can we split this?"
+        },
+        {
+          "invoice": "inv_0099",
+          "debtor": "Bose Hardware",
+          "outstanding": "\u20b916,814.30",
+          "outstanding_paise": 1681430,
+          "status": "escalated",
+          "reason": "financial hardship reported: 'Business is shut since June, we have no funds right now.'",
+          "last_inbound": "Business is shut since June, we have no funds right now."
+        },
+        {
+          "invoice": "inv_0081",
+          "debtor": "Chawla Hardware",
+          "outstanding": "\u20b914,365.50",
+          "outstanding_paise": 1436550,
+          "status": "stopped",
+          "reason": "no resolution after 4 automated contacts; recommend a human call or write-off review",
+          "last_inbound": "Cash flow is bad, can we split this?"
+        },
+        {
+          "invoice": "inv_0103",
+          "debtor": "Mehta Traders",
+          "outstanding": "\u20b912,131.00",
+          "outstanding_paise": 1213100,
+          "status": "escalated",
+          "reason": "dispute raised: 'Quality was rejected by our QC, invoice should be credit-noted.'",
+          "last_inbound": "Quality was rejected by our QC, invoice should be credit-noted."
+        },
+        {
+          "invoice": "inv_0011",
+          "debtor": "Joshi Logistics",
+          "outstanding": "\u20b910,263.31",
+          "outstanding_paise": 1026331,
+          "status": "stopped",
+          "reason": "no resolution after 4 automated contacts; recommend a human call or write-off review",
+          "last_inbound": "We can do 40% today, balance in 3 weeks."
+        },
+        {
+          "invoice": "inv_0035",
+          "debtor": "Nair Logistics",
+          "outstanding": "\u20b99,316.00",
+          "outstanding_paise": 931600,
+          "status": "stopped",
+          "reason": "no resolution after 4 automated contacts; recommend a human call or write-off review",
+          "last_inbound": "call later"
+        },
+        {
+          "invoice": "inv_0084",
+          "debtor": "Bose Hardware",
+          "outstanding": "\u20b95,587.65",
+          "outstanding_paise": 558765,
+          "status": "escalated",
+          "reason": "financial hardship reported: 'Factory flooded, operations stopped. Cannot pay currently.'",
+          "last_inbound": "Factory flooded, operations stopped. Cannot pay currently."
+        }
+      ],
+      "still_open_unresolved": 29,
+      "still_open_outstanding_paise": 153995309
+    }
+  }
+}

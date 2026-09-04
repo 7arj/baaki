@@ -28,11 +28,18 @@ def cmd_generate(a):
     console.print(f"[green]wrote[/] {path} — {len(debtors)} debtors, {len(invoices)} invoices, {rupees(sum(i.amount_paise for i in invoices))} receivable")
 
 
+LLM_KEYS = {
+    "claude": ("ANTHROPIC_API_KEY", "ANTHROPIC_AUTH_TOKEN"),
+    "openai": ("OPENAI_API_KEY",),
+}
+
+
 def cmd_run(a):
-    if a.brain == "claude" and not (os.environ.get("ANTHROPIC_API_KEY") or os.environ.get("ANTHROPIC_AUTH_TOKEN")):
-        console.print("[yellow]No ANTHROPIC_API_KEY set — Claude decisions will fall back to rules (this is the graceful-degradation path).[/]")
+    keys = LLM_KEYS.get(a.brain)
+    if keys and not any(os.environ.get(k) for k in keys):
+        console.print(f"[yellow]No {keys[0]} set — {a.brain} decisions will fall back to the rules brain (this is the graceful-degradation path, not a crash).[/]")
     faults = Faults(razorpay_fail_creates=2, llm_outage_days={3}, rogue_day=2) if a.demo_faults else Faults()
-    results = run_all(REPORTS, brain=a.brain, horizon=a.days, seed=a.seed, faults=faults, llm_effort=a.effort)
+    results = run_all(REPORTS, brain=a.brain, horizon=a.days, seed=a.seed, faults=faults, llm_effort=a.effort, model=a.model)
     print_summary(results)
     write_markdown(results, a.brain)
 
@@ -66,7 +73,9 @@ def print_summary(results):
     console.print(f"risk model (held-out {h['n']} invoices, base rate {rm['base_rate_holdout']}): precision {h['precision']} recall {h['recall']} f1 {h['f1']} @0.5")
     llm = runs["agent"].get("llm")
     if llm:
-        console.print(f"LLM: {llm['model']} calls={llm['calls']} fallbacks={llm['fallbacks']} tokens in/out={llm['input_tokens']}/{llm['output_tokens']} cache_read={llm['cache_read_tokens']}")
+        console.print(f"LLM: {llm['provider']}/{llm['model']} calls={llm['calls']} fallbacks={llm['fallbacks']} tokens in/out={llm['input_tokens']}/{llm['output_tokens']} cache_read={llm['cache_read_tokens']}")
+    if runs["agent"].get("llm_unavailable"):
+        console.print(f"[yellow]{runs['agent']['llm_unavailable']} — numbers below are the rules brain's.[/]")
     ex = runs["agent"]["exceptions"]
     console.print(f"[bold]{len(ex)} exceptions for a human[/] (top 5 by outstanding):")
     for e in ex[:5]:
@@ -112,7 +121,7 @@ def write_markdown(results, brain):
         lines.append(f"| {e['invoice']} | {e['debtor']} | {e['outstanding']} | {e['status']} | {e['reason']} |")
     if a.get("llm"):
         l = a["llm"]
-        lines += ["", "## LLM usage", f"model `{l['model']}`, {l['calls']} calls, {l['fallbacks']} fallbacks to rules, {l['input_tokens']} in / {l['output_tokens']} out tokens ({l['cache_read_tokens']} cache reads)."]
+        lines += ["", "## LLM usage", f"{l['provider']} model `{l['model']}`, {l['calls']} calls, {l['fallbacks']} fallbacks to rules, {l['input_tokens']} in / {l['output_tokens']} out tokens ({l['cache_read_tokens']} cache reads)."]
         if l["errors"]:
             lines += ["", "Fallback causes:", *[f"- {e}" for e in l["errors"]]]
     lines += ["", f"Decision sources: {a['decision_sources']}"]
@@ -142,10 +151,11 @@ def main(argv=None):
     g.set_defaults(fn=cmd_generate)
 
     r = sub.add_parser("run", help="run do-nothing, naive and agent strategies; write reports/")
-    r.add_argument("--brain", choices=["rules", "claude"], default="rules")
+    r.add_argument("--brain", choices=["rules", "claude", "openai"], default="rules")
+    r.add_argument("--model", default=None, help="override the provider default (e.g. gpt-5.1, claude-opus-5)")
     r.add_argument("--days", type=int, default=45)
     r.add_argument("--seed", type=int, default=7)
-    r.add_argument("--effort", default="low", help="Claude effort level (low|medium|high)")
+    r.add_argument("--effort", default="low", help="reasoning effort (low|medium|high)")
     r.add_argument("--demo-faults", action="store_true", help="inject a Razorpay outage, an LLM outage and a rogue decision")
     r.set_defaults(fn=cmd_run)
 

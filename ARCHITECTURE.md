@@ -10,7 +10,7 @@ flowchart LR
     C[DecisionContext<br/>visible facts · allowed actions · bounds]
     B{{Brain}}
     B1[RuleBrain]
-    B2[ClaudeBrain<br/>structured JSON]
+    B2[ClaudeBrain / OpenAIBrain<br/>structured JSON]
     G[Policy gate<br/>P-TIME · P-MSG · P-DISC · P-PLAN · P-LINK · P-CEASE …]
     T[Toolbox]
   end
@@ -42,7 +42,9 @@ flowchart LR
 
 **The LLM does what only an LLM can do.** Reading a reply like "20 cartons were short-shipped, not paying till corrected" and recognising it as a dispute; drafting a message that references the actual history; choosing between a plan and a discount for a specific debtor. It does not compute amounts (policy floors do), does not call Razorpay, does not decide *whether* the merchant is allowed to discount.
 
-**Deterministic fallback, not a retry storm.** When Claude is unreachable, slow, refuses, returns malformed JSON, or picks a blocked action, the rules brain answers *that one decision* and the audit records `brain_fallback` with the cause. The run never stalls, and `decision_sources` in the report tells you exactly how many decisions were LLM vs rules vs fallback.
+**Deterministic fallback, not a retry storm.** When the LLM is unreachable, slow, refuses, returns malformed JSON, or picks a blocked action, the rules brain answers *that one decision* and the audit records `brain_fallback` with the cause. If the client can't even be constructed (no key, bad config), the whole run degrades to rules and records `brain_unavailable` so the report never silently overstates the LLM. The run never stalls, and `decision_sources` tells you exactly how many decisions were LLM vs rules vs fallback.
+
+**Provider-agnostic by construction.** `ClaudeBrain` and `OpenAIBrain` share the system prompt, the output schema, the allowed-action list and the `Decision` return type; each owns only its SDK's quirks (raw JSON schema vs Pydantic model, `cache_control` vs automatic caching plus a `prompt_cache_key`, `stop_reason == "refusal"` vs `message.refusal`, and OpenAI's `reasoning_effort` which non-reasoning models reject — dropped once and remembered). The simulated outage is a neutral `SimulatedOutage`, not an SDK exception type, so the fallback path can't accidentally depend on one vendor. Swapping providers touches one class and nothing downstream of the policy gate.
 
 **Stopping rules are policy, not vibes.** A dispute, a hardship claim, a cease request, or four unanswered contacts each map to a terminal state with a reason string that lands on the human's exception list sorted by outstanding amount. The agent's job is to convert what it can and hand over the rest *with context* — not to grind.
 

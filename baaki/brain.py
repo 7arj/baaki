@@ -3,7 +3,9 @@
 - RuleBrain      : deterministic playbook. Always available. The fallback.
 - ClaudeBrain    : Claude reads the debtor's reply + history and picks the next bounded action
                    with a rationale and a drafted message (structured JSON output).
-- ResilientBrain : Claude first; any API error, timeout, refusal or invalid output falls back
+- OpenAIBrain    : the same contract against OpenAI. Identical prompt and schema; only the
+                   transport differs, which is the point — the policy gate does not care.
+- ResilientBrain : an LLM first; any API error, timeout, refusal or invalid output falls back
                    to RuleBrain and records that it did.
 - NoneBrain / NaiveBrain : the two baselines we measure against.
 """
@@ -15,6 +17,8 @@ import os
 import re
 from dataclasses import dataclass, field
 from typing import Any
+
+from pydantic import BaseModel
 
 from .domain import ActionType, Debtor, Decision, Intent, Invoice, rupees
 from .policy import Policy
@@ -195,8 +199,37 @@ OUTPUT_SCHEMA = {
 }
 
 
+class SimulatedOutage(RuntimeError):
+    """Injected by --demo-faults to black out the LLM for a day. Provider-neutral on purpose:
+    the fallback path must not depend on which SDK's exception type was raised."""
+
+
+class DecisionParams(BaseModel):
+    """Mirror of OUTPUT_SCHEMA's params. OpenAI structured outputs require every field present,
+    so optionals are explicit `| None` rather than omitted."""
+
+    accept_partial: bool | None
+    expire_days: int | None
+    installments: int | None
+    interval_days: int | None
+    first_amount_paise: int | None
+    discount_pct: float | None
+    days: int | None
+    reason: str | None
+
+
+class DecisionOutput(BaseModel):
+    reply_intent: Intent
+    action: ActionType
+    params: DecisionParams
+    message: str | None
+    rationale: str
+
+
 class ClaudeBrain:
     name = "claude"
+
+    provider = "anthropic"
 
     def __init__(self, model: str | None = None, effort: str = "low", outage_days: set[int] | None = None):
         import anthropic
@@ -213,7 +246,7 @@ class ClaudeBrain:
 
     def decide(self, ctx: DecisionContext) -> Decision:
         if ctx.day in self.outage_days:
-            raise self._anthropic.APIConnectionError(request=None, message="injected outage")  # type: ignore[arg-type]
+            raise SimulatedOutage("injected LLM outage")
         self.calls += 1
         resp = self.client.messages.create(
             model=self.model,
@@ -243,12 +276,11 @@ class ClaudeBrain:
 
 
 class ResilientBrain:
-    """Primary brain with a deterministic safety net. Every fallback is counted and audited."""
+    """An LLM brain with a deterministic safety net. Every fallback is counted and audited."""
 
-    name = "claude+rules"
-
-    def __init__(self, primary: ClaudeBrain, fallback: RuleBrain, audit):
+    def __init__(self, primary, fallback: RuleBrain, audit):
         self.primary = primary
+        self.name = f"{primary.name}+rules"
         self.fallback = fallback
         self.audit = audit
         self.fallbacks = 0
@@ -262,7 +294,7 @@ class ResilientBrain:
             self.errors.append(f"day {ctx.day} {ctx.inv.id}: {type(e).__name__}: {str(e)[:160]}")
             self.audit.record("brain_fallback", day=ctx.day, invoice=ctx.inv.id, error=f"{type(e).__name__}: {str(e)[:200]}")
             d = self.fallback.decide(ctx)
-            d.source = "claude->rules"
+            d.source = f"{self.primary.name}->rules"
             return d
 
 
@@ -286,3 +318,85 @@ class RogueWrapper:
                 source=f"{self.inner.name}(rogue)",
             )
         return self.inner.decide(ctx)
+
+
+class OpenAIBrain:
+    """Same contract as ClaudeBrain against OpenAI's Chat Completions API.
+
+    Differences that matter, all contained here: structured output is a Pydantic model passed to
+    `.parse()` rather than a raw JSON schema; prompt caching is automatic (we only supply a stable
+    `prompt_cache_key` so repeated system prompts route to the same cache); a policy decline arrives
+    as `message.refusal` rather than a stop reason; and `reasoning_effort` is only accepted by
+    reasoning models, so a 400 naming it is retried once without it.
+    """
+
+    name = "openai"
+    provider = "openai"
+    # OpenAI accepts minimal|low|medium|high; the Anthropic-side levels above `high` collapse down.
+    _EFFORT = {"low": "low", "medium": "medium", "high": "high", "xhigh": "high", "max": "high"}
+
+    def __init__(self, model: str | None = None, effort: str = "low", outage_days: set[int] | None = None):
+        import openai
+
+        self._openai = openai
+        self.client = openai.OpenAI()
+        self.model = model or os.environ.get("BAAKI_OPENAI_MODEL", "gpt-5")
+        self.effort = self._EFFORT.get(effort, "low")
+        self.outage_days = outage_days or set()
+        self._send_effort = True
+        self.calls = 0
+        self.input_tokens = 0
+        self.output_tokens = 0
+        self.cache_read_tokens = 0
+
+    def _request(self, ctx: DecisionContext, with_effort: bool):
+        kwargs: dict[str, Any] = {
+            "model": self.model,
+            "messages": [
+                {"role": "system", "content": SYSTEM_PROMPT},
+                {"role": "user", "content": json.dumps(ctx.for_llm(), ensure_ascii=False)},
+            ],
+            "response_format": DecisionOutput,
+            # Stable key so every invoice's request reuses the cached system-prompt prefix.
+            "prompt_cache_key": "baaki-recovery-agent-v1",
+        }
+        if with_effort:
+            kwargs["reasoning_effort"] = self.effort
+        return self.client.chat.completions.parse(**kwargs)
+
+    def decide(self, ctx: DecisionContext) -> Decision:
+        if ctx.day in self.outage_days:
+            raise SimulatedOutage("injected LLM outage")
+        self.calls += 1
+        try:
+            resp = self._request(ctx, self._send_effort)
+        except self._openai.BadRequestError as e:
+            # Non-reasoning models reject reasoning_effort. Drop it once, remember, carry on.
+            if self._send_effort and "reasoning_effort" in str(e):
+                self._send_effort = False
+                resp = self._request(ctx, False)
+            else:
+                raise
+
+        if resp.usage:
+            self.input_tokens += resp.usage.prompt_tokens
+            self.output_tokens += resp.usage.completion_tokens
+            details = resp.usage.prompt_tokens_details
+            self.cache_read_tokens += (details.cached_tokens or 0) if details else 0
+
+        message = resp.choices[0].message
+        if message.refusal:
+            raise RuntimeError(f"model refused: {message.refusal[:120]}")
+        data: DecisionOutput | None = message.parsed
+        if data is None:
+            raise ValueError("structured output missing (response was truncated or filtered)")
+        if ctx.allowed.get(data.action.value) != "allowed":
+            raise ValueError(f"model chose '{data.action.value}' which is {ctx.allowed.get(data.action.value)}")
+        return Decision(
+            action=data.action,
+            params={k: v for k, v in data.params.model_dump().items() if v is not None},
+            message=data.message,
+            rationale=data.rationale,
+            reply_intent=data.reply_intent,
+            source="openai",
+        )
