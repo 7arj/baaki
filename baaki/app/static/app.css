@@ -63,6 +63,9 @@ main{max-width:1240px;margin:0 auto;padding:24px}
 /* ---- surfaces ---- */
 .card{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:18px;box-shadow:var(--shadow)}
 .card+.card{margin-top:16px}
+/* That rule is for cards stacked in a column. Inside a grid every card after the first is
+   still an "adjacent sibling", so it was shoving grid cards down 16px and misaligning rows. */
+:where(.grid,.g2,.g3)>.card+.card{margin-top:0}
 .card h2{margin-bottom:4px}
 .card .hint{color:var(--muted);font-size:13px;margin-bottom:14px}
 .grid{display:grid;gap:16px}
