@@ -6,6 +6,7 @@ No brain (LLM or rules) can move money or contact a debtor except through `Toolb
 from __future__ import annotations
 
 import re
+import uuid
 from dataclasses import dataclass, field
 from datetime import datetime
 from typing import Any
@@ -174,7 +175,11 @@ class Toolbox:
             "accept_partial": accept_partial,
             "first_min_partial_amount": min_partial if accept_partial else 0,
             "expire_by": int((datetime.now().timestamp()) + expire_days * 86400),
-            "reference_id": f"{inv.id}-{day}",
+            # Razorpay rejects duplicate reference ids. The product engine always passes day 0,
+            # so "invoice-day" collides the moment an invoice gets a second link (a plan after a
+            # reminder, a settlement link). notes.invoice_id carries the exact mapping; this only
+            # needs to be unique and searchable.
+            "reference_id": f"{inv.id}-{uuid.uuid4().hex[:8]}"[:40],
             "description": f"{self.merchant}: {inv.description} ({inv.id})",
             "customer": {"name": debtor.name, "contact": debtor.contact, "email": debtor.email},
             "notify": {"sms": False, "email": False},  # Baaki composes its own messages
@@ -189,6 +194,10 @@ class Toolbox:
                 self.gateway_failures += 1
                 self.audit.record("razorpay_call", day=day, invoice=inv.id, op="payment_link.create", attempt=attempt + 1, error=str(e))
                 link = None
+                if getattr(self.rzp, "mode", "") != "simulated":
+                    import time as _time
+
+                    _time.sleep(1.5 * (attempt + 1))   # rate limits clear in seconds, not instantly
         if link is None:
             inv.log(day, "system", "Razorpay unavailable after 3 attempts; deferring one day (no contact made)")
             inv.next_action_day = day + 1

@@ -59,6 +59,13 @@ class RealRazorpay:
             return fn(*args)
         except (self._errors.ServerError, self._errors.GatewayError) as e:
             raise RazorpayUnavailable(str(e)) from e
+        except self._errors.BadRequestError as e:
+            # The SDK reports HTTP 429 as a BadRequestError. A rate limit is the definition of
+            # transient; everything else under this class (bad amount, duplicate reference) is
+            # genuinely the caller's problem and must not be retried.
+            if "too many requests" in str(e).lower():
+                raise RazorpayUnavailable(str(e)) from e
+            raise
 
     def create(self, payload: dict[str, Any]) -> dict[str, Any]:
         return self._wrap(self._client.payment_link.create, payload)

@@ -26,22 +26,24 @@ EMAIL = "demo@baaki.app"
 PASSWORD = "baaki-demo-2026"
 COMPANY = "Sharma Industrial Supplies"
 
+# Amounts stay under Rs 50,000: Razorpay refuses larger payment links until KYC is complete,
+# so this ledger produces real checkouts even on a fresh test account.
 LEDGER = [
     # (number, customer, email, amount ₹, days overdue, description)
-    ("INV-2041", "Mehta Traders", "accounts@mehtatraders.in", 240866.00, 46, "Printed labels — PO 1647"),
-    ("INV-2042", "Chawla Hardware", "accounts@chawlahardware.in", 54965.06, 39, "MS pipes — PO 2213"),
-    ("INV-2043", "Nair Logistics", "ap@nairlogistics.in", 85253.00, 34, "Pallets — PO 2288"),
+    ("INV-2041", "Mehta Traders", "accounts@mehtatraders.in", 48866.00, 46, "Printed labels — PO 1647"),
+    ("INV-2042", "Chawla Hardware", "accounts@chawlahardware.in", 34965.06, 39, "MS pipes — PO 2213"),
+    ("INV-2043", "Nair Logistics", "ap@nairlogistics.in", 45253.00, 34, "Pallets — PO 2288"),
     ("INV-2044", "Iyer Hardware", "accounts@iyerhardware.in", 18187.00, 28, "Fasteners — PO 2301"),
-    ("INV-2045", "Bose Electricals", "finance@boseelectricals.in", 120240.00, 25, "Packaging film — PO 2344"),
+    ("INV-2045", "Bose Electricals", "finance@boseelectricals.in", 42240.00, 25, "Packaging film — PO 2344"),
     ("INV-2046", "Kavya Agro", "accounts@kavyaagro.in", 32039.00, 21, "Corrugated boxes — PO 2350"),
-    ("INV-2047", "Reddy Logistics", "ap@reddylogistics.in", 60066.00, 19, "CNC job work — PO 2361"),
+    ("INV-2047", "Reddy Logistics", "ap@reddylogistics.in", 40066.00, 19, "CNC job work — PO 2361"),
     ("INV-2048", "Joshi Enterprises", "accounts@joshient.in", 45372.00, 16, "Dyes & chemicals — PO 2370"),
     ("INV-2049", "Mishra Ceramics", "finance@mishraceramics.in", 12229.00, 14, "Spare parts — PO 2381"),
-    ("INV-2050", "Patel Electricals", "accounts@patelelec.in", 85624.00, 12, "Cotton yarn lot — PO 2390"),
+    ("INV-2050", "Patel Electricals", "accounts@patelelec.in", 35624.00, 12, "Cotton yarn lot — PO 2390"),
     ("INV-2051", "Das Hardware", "ap@dashardware.in", 9316.00, 9, "Office fit-out — PO 2401"),
-    ("INV-2052", "Verma Pharma Distributors", "accounts@vermapharma.in", 175400.00, 7, "Packaging film — PO 2410"),
+    ("INV-2052", "Verma Pharma Distributors", "accounts@vermapharma.in", 47400.00, 7, "Packaging film — PO 2410"),
     ("INV-2053", "Singh Textiles", "finance@singhtextiles.in", 23487.00, 5, "Printed labels — PO 2418"),
-    ("INV-2054", "Pillai Traders", "accounts@pillaitraders.in", 66800.00, 3, "Fasteners — PO 2425"),
+    ("INV-2054", "Pillai Traders", "accounts@pillaitraders.in", 36800.00, 3, "Fasteners — PO 2425"),
 ]
 
 # Replies that arrive during the demo run, keyed by invoice number.
@@ -79,6 +81,15 @@ def seed(reset: bool = True) -> dict:
                   reply_to_email="accounts@sharmaindustrial.in", support_phone="+91 80 4718 2200",
                   plan=Plan.GROWTH, subscription_status=SubscriptionStatus.ACTIVE,
                   rzp_subscription_id="sub_demo_growth", agent_enabled=True, approval_required=False)
+        # When the operator has test-mode keys in the environment, the demo tenant collects on
+        # them: every link the seed creates is then a real rzp.io checkout. Live keys never.
+        import os
+
+        from .security import encrypt_secret
+
+        if os.environ.get("RAZORPAY_KEY_ID", "").startswith("rzp_test_") and os.environ.get("RAZORPAY_KEY_SECRET"):
+            org.rzp_key_id = os.environ["RAZORPAY_KEY_ID"]
+            org.rzp_key_secret_enc = encrypt_secret(os.environ["RAZORPAY_KEY_SECRET"])
         db.add(org); db.commit(); db.refresh(org)
         db.add(PolicySettings(org_id=org.id))
         db.add(User(org_id=org.id, email=EMAIL, name="Arjun Sharma", password_hash=hash_password(PASSWORD)))
