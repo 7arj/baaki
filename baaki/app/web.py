@@ -139,8 +139,8 @@ def landing(request: Request, p: Principal | None = Depends(optional_principal))
 
 
 @router.get("/signup", response_class=HTMLResponse)
-def signup_form(request: Request):
-    return render(request, "signup.html")
+def signup_form(request: Request, local: str = ""):
+    return render(request, "signup.html", local_auth=bool(local))
 
 
 @router.post("/signup")
@@ -183,8 +183,10 @@ def signup(request: Request, db: DBSession = Depends(get_session), company: str 
 
 
 @router.get("/login", response_class=HTMLResponse)
-def login_form(request: Request):
-    return render(request, "login.html")
+def login_form(request: Request, local: str = ""):
+    # Local accounts (the seeded demo, operator break-glass) predate or bypass Clerk; ?local=1
+    # renders the password form even when the widget owns the page.
+    return render(request, "login.html", local_auth=bool(local))
 
 
 @router.post("/login")

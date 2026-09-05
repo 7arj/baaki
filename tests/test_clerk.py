@@ -289,3 +289,25 @@ def test_user_updated_syncs_email_and_name(client, clerk, eng, monkeypatch):
 def test_webhook_without_a_configured_secret_is_unavailable(client, clerk, monkeypatch):
     monkeypatch.delenv("CLERK_WEBHOOK_SECRET", raising=False)
     assert client.post("/webhooks/clerk", content=b"{}").status_code == 503
+
+
+def test_local_accounts_remain_reachable_when_clerk_is_on(client, clerk, eng):
+    """The seeded demo account lives in Baaki's own database; Clerk has never heard of it. With
+    the widget owning /login it became unreachable through the UI. ?local=1 is the escape hatch."""
+    with Session(eng) as s:
+        org = Org(name="Demo Co", slug="demo-co", onboarding_complete=True)
+        s.add(org); s.commit(); s.refresh(org)
+        s.add(User(org_id=org.id, email="demo@baaki.app", password_hash=hash_password("baaki-demo-2026"),
+                   email_verified_at=utcnow()))
+        s.commit()
+
+    widget = client.get("/login").text
+    assert 'id="clerk-mount"' in widget and 'name="password"' not in widget
+    assert "/login?local=1" in widget                      # the switch is discoverable
+
+    form = client.get("/login?local=1").text
+    assert 'name="password"' in form and 'id="clerk-mount"' not in form
+
+    r = client.post("/login", data={"email": "demo@baaki.app", "password": "baaki-demo-2026",
+                                    "csrf_token": client.cookies.get("baaki_csrf")})
+    assert "Dashboard" in r.text

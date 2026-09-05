@@ -4,7 +4,7 @@
 <div class="auth-screen">
   <a class="brand" href="/"><span class="dot"></span>Baaki</a>
   {% if ok or err %}{# banners are rendered by base into main; keep width aligned #}{% endif %}
-  {% if clerk_enabled %}
+  {% if clerk_enabled and not local_auth %}
   <div id="clerk-mount">
     <div class="loading" role="status" aria-live="polite">
       <div class="spinner" aria-hidden="true"></div>
@@ -28,7 +28,7 @@
 </div>
 {% endblock %}
 
-{% block foot %}{% if clerk_enabled %}
+{% block foot %}{% if clerk_enabled and not local_auth %}
 {% include "_clerk.html" %}
 <script>window.__clerkMode = "sign-in";</script>
 {% endif %}{% endblock %}
