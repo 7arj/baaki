@@ -1,36 +1,44 @@
 {% extends "base.html" %}{% block title %}Create your Baaki account{% endblock %}
-
-{% block foot %}{% if clerk_enabled %}
-{% include "_clerk.html" %}
-<script>window.__clerkMode = "sign-up";</script>
-{% endif %}{% endblock %}
+{% block bodyclass %}authpage{% endblock %}
 {% block body %}
-<div class="auth">
-  <a class="brand" href="/" style="justify-content:center;margin-bottom:18px"><span class="dot"></span>Baaki</a>
+<div class="auth-screen">
+  <a class="brand" href="/"><span class="dot"></span>Baaki</a>
+  {% if ok or err %}{# banners are rendered by base into main; keep width aligned #}{% endif %}
+  {% if clerk_enabled %}
+  <div id="clerk-mount">
+    <div class="loading" role="status" aria-live="polite">
+      <div class="spinner" aria-hidden="true"></div>
+      Connecting secure sign-in…
+    </div>
+  </div>
+  {% else %}
   <div class="card">
     <h1>Start your free trial</h1>
     <p class="muted small" style="margin-bottom:20px">14 days, no card. You'll import a ledger next.</p>
-    {% if clerk_enabled %}
-    <div id="clerk-mount" style="min-height:400px"></div>
-    {% else %}
     <form method="post" action="/signup">
       <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
       <div class="field">
         <label for="company">Business name</label>
-        <input id="company" name="company" required autofocus placeholder="Sharma Industrial Supplies">
+        <input id="company" name="company" required autofocus placeholder="Sharma Industrial Supplies" autocomplete="organization">
         <div class="help">This is the name your customers will see on reminders.</div>
       </div>
-      <div class="field"><label for="name">Your name</label><input id="name" name="name" placeholder="Arjun"></div>
-      <div class="field"><label for="email">Work email</label><input id="email" name="email" type="email" required></div>
+      <div class="field"><label for="name">Your name</label><input id="name" name="name" placeholder="Arjun" autocomplete="name"></div>
+      <div class="field"><label for="email">Work email</label><input id="email" name="email" type="email" required autocomplete="email"></div>
       <div class="field">
         <label for="password">Password</label>
-        <input id="password" name="password" type="password" required minlength="10">
+        <input id="password" name="password" type="password" required minlength="10" autocomplete="new-password">
         <div class="help">At least 10 characters.</div>
       </div>
       <button class="btn primary lg" type="submit" style="width:100%;justify-content:center">Create account</button>
     </form>
     <div class="alt">Already have an account? <a href="/login">Sign in</a></div>
-    {% endif %}
   </div>
+  {% endif %}
+  <p class="note">14 days free, no card. You'll name your business and import a ledger next.</p>
 </div>
 {% endblock %}
+
+{% block foot %}{% if clerk_enabled %}
+{% include "_clerk.html" %}
+<script>window.__clerkMode = "sign-up";</script>
+{% endif %}{% endblock %}

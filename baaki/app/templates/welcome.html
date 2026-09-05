@@ -1,18 +1,17 @@
 {% extends "base.html" %}{% block title %}Name your business · Baaki{% endblock %}
 {% block body %}
-<div class="auth">
+<div class="auth-screen" style="min-height:calc(100dvh - 120px)">
   <div class="card">
     <h1>One last thing</h1>
     <p class="muted small" style="margin-bottom:20px">
-      What should your customers see on reminders? This is the name that signs every message
-      Baaki sends on your behalf.
+      What should your customers see on reminders? This name signs every message Baaki sends
+      on your behalf.
     </p>
     <form method="post" action="/app/welcome">
       <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
       <div class="field">
         <label for="company">Business name</label>
-        <input id="company" name="company" required autofocus placeholder="Sharma Industrial Supplies"
-               value="{{ '' if not org.legal_name else org.legal_name }}">
+        <input id="company" name="company" required autofocus placeholder="Sharma Industrial Supplies" autocomplete="organization">
         <div class="help">You can change this later in Settings.</div>
       </div>
       <button class="btn primary lg" type="submit" style="width:100%;justify-content:center">Continue</button>

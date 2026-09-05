@@ -4,13 +4,14 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <title>{% block title %}Baaki{% endblock %}</title>
-<link rel="stylesheet" href="/static/app.css">
+<link rel="stylesheet" href="{{ asset_url('app.css') }}">
 <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'><circle cx='16' cy='16' r='13' fill='%232a78d6'/></svg>">
 </head>
-<body>
+<body class="{% block bodyclass %}{% endblock %}">
 {% if principal %}
 <header class="top"><div class="top-in">
-  <a class="brand" href="/app"><span class="dot"></span>Baaki<span class="tag">{{ org.name }}</span></a>
+  <a class="brand" href="/app"><span class="dot"></span>Baaki{% if org.onboarding_complete %}<span class="tag">{{ org.name }}</span>{% endif %}</a>
+  {% if org.onboarding_complete %}
   <nav class="nav">
     <a href="/app" class="{{ 'on' if nav=='dashboard' }}">Dashboard</a>
     <a href="/app/invoices" class="{{ 'on' if nav=='invoices' }}">Invoices</a>
@@ -20,6 +21,7 @@
     <a href="/app/settings" class="{{ 'on' if nav=='settings' }}">Settings</a>
     <a href="/app/billing" class="{{ 'on' if nav=='billing' }}">Billing</a>
   </nav>
+  {% endif %}
   <div class="spacer"></div>
   <div class="who">
     {% if principal.user.avatar_url %}
@@ -50,6 +52,15 @@
   {% block body %}{% endblock %}
 </main>
 {% block foot %}{% endblock %}
+{% if ok or err %}
+<script>
+  if (window.history.replaceState) {
+    var u = new URL(location.href);
+    u.searchParams.delete("ok"); u.searchParams.delete("err");
+    history.replaceState(null, "", u.pathname + (u.search || "") + u.hash);
+  }
+</script>
+{% endif %}
 {% if principal and clerk_enabled %}
 <script async crossorigin="anonymous" id="clerk-js-app"
         data-clerk-publishable-key="{{ clerk_key }}"></script>

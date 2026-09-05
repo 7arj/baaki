@@ -32,7 +32,6 @@
     </tr></thead>
     <tbody>
     {% for r in rows %}
-      {% set od = (r.due_on - today).days if today else 0 %}
       <tr onclick="location='/app/invoices/{{ r.id }}'" style="cursor:pointer">
         <td><a href="/app/invoices/{{ r.id }}">{{ r.number }}</a><div class="muted small">{{ r.description[:40] }}</div></td>
         <td>{{ customers[r.customer_id].name if r.customer_id in customers else '—' }}</td>

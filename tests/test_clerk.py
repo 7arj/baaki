@@ -116,9 +116,15 @@ def test_onboarding_sets_the_name_customers_will_see(client, clerk, eng):
 
 
 def test_the_gate_holds_until_onboarding_is_done(client, clerk):
+    """Every app surface, not just the dashboard: reaching Settings or Billing with no business
+    name was possible when only three routes were gated, and the nav behaved inconsistently."""
     clerk.sign_in()
-    for path in ("/app", "/app/invoices", "/app/import"):
-        assert "One last thing" in client.get(path).text
+    for path in ("/app", "/app/invoices", "/app/import", "/app/approvals", "/app/settings",
+                 "/app/billing", "/app/team", "/app/audit"):
+        assert "One last thing" in client.get(path).text, f"{path} escaped the onboarding gate"
+    # and the nav is not rendered as a trap of links that all bounce back here
+    page = client.get("/app").text
+    assert '/app/invoices"' not in page and '/app/billing"' not in page
 
 
 def test_returning_sign_in_reuses_the_same_user(client, clerk, eng):

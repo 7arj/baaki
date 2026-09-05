@@ -1,22 +1,65 @@
-{# Clerk's hosted sign-in / sign-up widget. Mounted only when CLERK_PUBLISHABLE_KEY is set;
-   the local password forms render instead when it is not. #}
+{# Clerk's hosted widget: themed from the app's own CSS variables so it matches the page's
+   colour scheme, with a loading state while the script arrives and a fallback if it doesn't. #}
 <script>
-  window.__clerkFrontendApi = atob("{{ clerk_key.split('_')[2] }}").replace(/\$$/, "");
-</script>
-<script async crossorigin="anonymous" id="clerk-js"></script>
-<script>
-  (function () {
-    var s = document.getElementById("clerk-js");
-    s.setAttribute("data-clerk-publishable-key", "{{ clerk_key }}");
-    s.src = "https://" + window.__clerkFrontendApi + "/npm/@clerk/clerk-js@5/dist/clerk.browser.js";
-    s.addEventListener("load", async function () {
-      await window.Clerk.load({ afterSignInUrl: "/app", afterSignUpUrl: "/app" });
-      var mount = document.getElementById("clerk-mount");
-      if (!mount) return;
-      var opts = { afterSignInUrl: "/app", afterSignUpUrl: "/app",
-                   appearance: { variables: { colorPrimary: "#2a78d6", borderRadius: "7px" } } };
-      if (window.__clerkMode === "sign-up") window.Clerk.mountSignUp(mount, opts);
-      else window.Clerk.mountSignIn(mount, opts);
+(function () {
+  function v(name, fallback) {
+    var raw = getComputedStyle(document.documentElement).getPropertyValue(name);
+    return (raw || fallback).trim();
+  }
+
+  function appearance() {
+    return {
+      variables: {
+        colorPrimary:         v("--brand", "#2a78d6"),
+        colorBackground:      v("--surface", "#fcfcfb"),
+        colorText:            v("--ink", "#0b0b0b"),
+        colorTextSecondary:   v("--ink-2", "#52514e"),
+        colorInputBackground: v("--surface-2", "#f4f4f1"),
+        colorInputText:       v("--ink", "#0b0b0b"),
+        colorNeutral:         v("--ink-2", "#52514e"),
+        colorDanger:          v("--critical", "#d03b3b"),
+        colorSuccess:         v("--good", "#0ca30c"),
+        borderRadius:         v("--radius-sm", "7px"),
+        fontFamily:           getComputedStyle(document.body).fontFamily
+      },
+      elements: {
+        card: { boxShadow: "var(--shadow)", border: "1px solid " + v("--border", "rgba(0,0,0,.1)"), width: "100%" },
+        rootBox: { width: "100%" }
+      }
+    };
+  }
+
+  var mount = document.getElementById("clerk-mount");
+
+  function fail(message) {
+    if (mount) mount.innerHTML =
+      '<div class="loading">' + message +
+      ' <a href="javascript:location.reload()">Retry</a></div>';
+  }
+
+  function render() {
+    if (!mount) return;
+    mount.innerHTML = "";
+    var opts = { fallbackRedirectUrl: "/app",
+                 signInUrl: "/login", signUpUrl: "/signup", appearance: appearance() };
+    if (window.__clerkMode === "sign-up") window.Clerk.mountSignUp(mount, opts);
+    else window.Clerk.mountSignIn(mount, opts);
+  }
+
+  var frontendApi = atob("{{ clerk_key.split('_')[2] }}").replace(/\$$/, "");
+  var s = document.createElement("script");
+  s.async = true;
+  s.crossOrigin = "anonymous";
+  s.setAttribute("data-clerk-publishable-key", "{{ clerk_key }}");
+  s.src = "https://" + frontendApi + "/npm/@clerk/clerk-js@5/dist/clerk.browser.js";
+  s.onerror = function () { fail("Sign-in couldn't load. Check your connection and"); };
+  s.addEventListener("load", function () {
+    window.Clerk.load({ appearance: appearance() }).then(render).catch(function () {
+      fail("Sign-in couldn't start.");
     });
-  })();
+    // Follow the OS if it flips between light and dark while the page is open.
+    window.matchMedia("(prefers-color-scheme: dark)").addEventListener("change", render);
+  });
+  document.head.appendChild(s);
+})();
 </script>

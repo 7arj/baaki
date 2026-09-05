@@ -1,35 +1,40 @@
 {% extends "base.html" %}{% block title %}Join {{ org_name }} on Baaki{% endblock %}
-
-{% block foot %}{% if clerk_enabled %}
-{% include "_clerk.html" %}
-<script>window.__clerkMode = "sign-up";</script>
-{% endif %}{% endblock %}
+{% block bodyclass %}authpage{% endblock %}
 {% block body %}
-<div class="auth">
-  <a class="brand" href="/" style="justify-content:center;margin-bottom:18px"><span class="dot"></span>Baaki</a>
+<div class="auth-screen">
+  <a class="brand" href="/"><span class="dot"></span>Baaki</a>
+  {% if ok or err %}{# banners are rendered by base into main; keep width aligned #}{% endif %}
+  {% if clerk_enabled %}
+  <div id="clerk-mount">
+    <div class="loading" role="status" aria-live="polite">
+      <div class="spinner" aria-hidden="true"></div>
+      Connecting secure sign-in…
+    </div>
+  </div>
+  {% else %}
   <div class="card">
     <h1>Join {{ org_name }}</h1>
     <p class="muted small" style="margin-bottom:20px">
       You've been invited as {{ invite.role.value }} for <b>{{ invite.email }}</b>. Choose a password to accept.
     </p>
-    {% if clerk_enabled %}
-    <div id="clerk-mount" style="min-height:400px"></div>
-    <p class="muted small" style="text-align:center;margin-top:12px">
-      Sign in with the address this invitation was sent to.
-    </p>
-    {% else %}
     <form method="post" action="/invite">
       <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
       <input type="hidden" name="token" value="{{ token }}">
-      <div class="field"><label for="name">Your name</label><input id="name" name="name" autofocus></div>
+      <div class="field"><label for="name">Your name</label><input id="name" name="name" autofocus autocomplete="name"></div>
       <div class="field">
         <label for="password">Password</label>
-        <input id="password" name="password" type="password" required minlength="10">
+        <input id="password" name="password" type="password" required minlength="10" autocomplete="new-password">
         <div class="help">At least 10 characters.</div>
       </div>
       <button class="btn primary lg" type="submit" style="width:100%;justify-content:center">Accept invitation</button>
     </form>
-    {% endif %}
   </div>
+  {% endif %}
+  <p class="note">Sign in with <b>{{ invite.email }}</b>, the address this invitation was sent to.</p>
 </div>
 {% endblock %}
+
+{% block foot %}{% if clerk_enabled %}
+{% include "_clerk.html" %}
+<script>window.__clerkMode = "sign-up";</script>
+{% endif %}{% endblock %}

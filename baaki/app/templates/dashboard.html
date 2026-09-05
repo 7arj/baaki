@@ -1,4 +1,4 @@
-{% extends "base.html" %}{% set nav='dashboard' %}{% set pending_count=pending %}
+{% extends "base.html" %}{% set nav='dashboard' %}
 {% block title %}Dashboard · Baaki{% endblock %}
 {% block body %}
 <div class="head">
@@ -114,7 +114,7 @@
       <div class="ev {{ e.kind }}">
         <span class="when">{{ e.at|ago }}</span>
         <span class="kind">{{ e.kind }}</span>
-        <span class="body">{% if e.invoice_id in inv_by_id %}<a href="/app/invoices/{{ e.invoice_id }}">{{ inv_by_id[e.invoice_id].number }}</a> · {% endif %}{{ e.summary[:190] }}</span>
+        <span class="body">{% if e.invoice_id in inv_by_id %}<a href="/app/invoices/{{ e.invoice_id }}">{{ inv_by_id[e.invoice_id].number }}</a> · {% endif %}{{ e.summary[:190] }}{% if e.summary|length > 190 %}…{% endif %}</span>
       </div>
       {% else %}<p class="muted small">No activity yet — run the agent to get started.</p>{% endfor %}
     </div>

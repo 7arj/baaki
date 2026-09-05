@@ -34,6 +34,28 @@ from .transports import dispatch_outbox
 
 BASE = Path(__file__).resolve().parent
 templates = Jinja2Templates(directory=str(BASE / "templates"))
+
+
+import hashlib as _hashlib
+from functools import lru_cache
+
+
+@lru_cache(maxsize=32)
+def _asset_fingerprint(name: str, mtime_ns: int) -> str:
+    return _hashlib.sha1((BASE / "static" / name).read_bytes()).hexdigest()[:10]
+
+
+def asset_url(name: str) -> str:
+    """Content-hashed asset URL. A stylesheet edit changes the URL, so a browser can never keep
+    serving yesterday's CSS against today's templates."""
+    path = BASE / "static" / name
+    try:
+        return f"/static/{name}?v={_asset_fingerprint(name, path.stat().st_mtime_ns)}"
+    except OSError:
+        return f"/static/{name}"
+
+
+templates.env.globals["asset_url"] = asset_url
 templates.env.filters["inr"] = lambda p: rupees(int(p or 0))
 templates.env.filters["ago"] = lambda d: _ago(d)
 
@@ -52,6 +74,15 @@ def _ago(d) -> str:
 
 def render(request: Request, name: str, principal: Principal | None = None, **ctx) -> HTMLResponse:
     csrf = request.cookies.get(CSRF_COOKIE)
+    if principal is not None and "pending_count" not in ctx:
+        # The Approvals badge belongs on every page, not only the two that used to compute it.
+        from .db import engine
+        from sqlmodel import Session as _S
+
+        with _S(engine()) as _db:
+            ctx["pending_count"] = _db.exec(
+                select(func.count(Outbox.id)).where(Outbox.org_id == principal.org_id,
+                                                    Outbox.status == OutboxStatus.PENDING_APPROVAL)).one()
     resp = templates.TemplateResponse(request, name, {
         "principal": principal, "org": principal.org if principal else None,
         "clerk_enabled": clerk_auth.enabled(), "clerk_key": clerk_auth.publishable_key(),
@@ -386,7 +417,7 @@ def invoices(request: Request, p: Principal = Depends(require_onboarded), db: DB
 
 
 @router.get("/app/invoices/{invoice_id}", response_class=HTMLResponse)
-def invoice_detail(invoice_id: int, request: Request, p: Principal = Depends(current_principal), db: DBSession = Depends(get_session)):
+def invoice_detail(invoice_id: int, request: Request, p: Principal = Depends(require_onboarded), db: DBSession = Depends(get_session)):
     row = db.get(InvoiceRow, invoice_id)
     if not row or row.org_id != p.org_id:      # tenancy check on every single object read
         raise HTTPException(404, "Invoice not found")
@@ -399,7 +430,7 @@ def invoice_detail(invoice_id: int, request: Request, p: Principal = Depends(cur
 
 
 @router.post("/app/invoices/{invoice_id}/note")
-def add_reply(invoice_id: int, request: Request, p: Principal = Depends(current_principal), db: DBSession = Depends(get_session),
+def add_reply(invoice_id: int, request: Request, p: Principal = Depends(require_onboarded), db: DBSession = Depends(get_session),
               text: str = Form(...), csrf_token: str = Form("")):
     """Log a customer's reply. The agent reads it on the next run and classifies the intent."""
     require_csrf(request, csrf_token)
@@ -416,7 +447,7 @@ def add_reply(invoice_id: int, request: Request, p: Principal = Depends(current_
 
 
 @router.post("/app/invoices/{invoice_id}/stop")
-def stop_invoice(invoice_id: int, request: Request, p: Principal = Depends(current_principal), db: DBSession = Depends(get_session),
+def stop_invoice(invoice_id: int, request: Request, p: Principal = Depends(require_onboarded), db: DBSession = Depends(get_session),
                  reason: str = Form("stopped by a human"), csrf_token: str = Form("")):
     require_csrf(request, csrf_token)
     row = db.get(InvoiceRow, invoice_id)
@@ -440,12 +471,12 @@ def import_form(request: Request, p: Principal = Depends(require_onboarded), db:
 
 
 @router.get("/app/import/sample.csv")
-def sample_csv(p: Principal = Depends(current_principal)):
+def sample_csv(p: Principal = Depends(require_onboarded)):
     return PlainTextResponse(SAMPLE_CSV, headers={"Content-Disposition": 'attachment; filename="baaki-sample.csv"'})
 
 
 @router.post("/app/import")
-async def do_import(request: Request, p: Principal = Depends(current_principal), db: DBSession = Depends(get_session),
+async def do_import(request: Request, p: Principal = Depends(require_onboarded), db: DBSession = Depends(get_session),
                     file: UploadFile = File(...), csrf_token: str = Form("")):
     require_csrf(request, csrf_token)
     raw = await file.read()
@@ -459,7 +490,7 @@ async def do_import(request: Request, p: Principal = Depends(current_principal),
 
 
 @router.post("/app/import/demo")
-def load_demo(request: Request, p: Principal = Depends(current_principal), db: DBSession = Depends(get_session),
+def load_demo(request: Request, p: Principal = Depends(require_onboarded), db: DBSession = Depends(get_session),
               csrf_token: str = Form("")):
     require_csrf(request, csrf_token)
     try:
@@ -473,7 +504,7 @@ def load_demo(request: Request, p: Principal = Depends(current_principal), db: D
 # Agent runs & approvals
 # ============================================================================================
 @router.post("/app/run")
-def run_agent(request: Request, p: Principal = Depends(current_principal), db: DBSession = Depends(get_session),
+def run_agent(request: Request, p: Principal = Depends(require_onboarded), db: DBSession = Depends(get_session),
               csrf_token: str = Form("")):
     require_csrf(request, csrf_token)
     if problem := billing_mod.entitlement_problem(p.org):
@@ -488,7 +519,7 @@ def run_agent(request: Request, p: Principal = Depends(current_principal), db: D
 
 
 @router.get("/app/approvals", response_class=HTMLResponse)
-def approvals(request: Request, p: Principal = Depends(current_principal), db: DBSession = Depends(get_session)):
+def approvals(request: Request, p: Principal = Depends(require_onboarded), db: DBSession = Depends(get_session)):
     msgs = db.exec(select(Outbox).where(Outbox.org_id == p.org_id, Outbox.status == OutboxStatus.PENDING_APPROVAL).order_by(Outbox.created_at)).all()
     invs = {i.id: i for i in db.exec(select(InvoiceRow).where(InvoiceRow.org_id == p.org_id)).all()}
     custs = {c.id: c for c in db.exec(select(Customer).where(Customer.org_id == p.org_id)).all()}
@@ -497,7 +528,7 @@ def approvals(request: Request, p: Principal = Depends(current_principal), db: D
 
 
 @router.post("/app/approvals/approve-all")
-def approve_all(request: Request, p: Principal = Depends(current_principal), db: DBSession = Depends(get_session),
+def approve_all(request: Request, p: Principal = Depends(require_onboarded), db: DBSession = Depends(get_session),
                 csrf_token: str = Form("")):
     require_csrf(request, csrf_token)
     msgs = db.exec(select(Outbox).where(Outbox.org_id == p.org_id, Outbox.status == OutboxStatus.PENDING_APPROVAL)).all()
@@ -514,7 +545,7 @@ def approve_all(request: Request, p: Principal = Depends(current_principal), db:
 # Registered after the literal route above: FastAPI matches in order, so
 # "/app/approvals/approve-all" must never fall through to this int-typed path.
 @router.post("/app/approvals/{msg_id}")
-def decide_message(msg_id: int, request: Request, p: Principal = Depends(current_principal), db: DBSession = Depends(get_session),
+def decide_message(msg_id: int, request: Request, p: Principal = Depends(require_onboarded), db: DBSession = Depends(get_session),
                    verdict: str = Form(...), body: str = Form(""), csrf_token: str = Form("")):
     require_csrf(request, csrf_token)
     msg = db.get(Outbox, msg_id)
@@ -542,7 +573,7 @@ def decide_message(msg_id: int, request: Request, p: Principal = Depends(current
 # Settings
 # ============================================================================================
 @router.get("/app/settings", response_class=HTMLResponse)
-def settings_page(request: Request, p: Principal = Depends(current_principal), db: DBSession = Depends(get_session)):
+def settings_page(request: Request, p: Principal = Depends(require_onboarded), db: DBSession = Depends(get_session)):
     s = db.exec(select(PolicySettings).where(PolicySettings.org_id == p.org_id)).first() or PolicySettings(org_id=p.org_id)
     ok, msg = verify_chain(db, p.org_id)
     return render(request, "settings.html", p, s=s, chain_ok=ok, chain_msg=msg,
@@ -551,7 +582,7 @@ def settings_page(request: Request, p: Principal = Depends(current_principal), d
 
 
 @router.post("/app/settings/profile")
-def save_profile(request: Request, p: Principal = Depends(current_principal), db: DBSession = Depends(get_session),
+def save_profile(request: Request, p: Principal = Depends(require_onboarded), db: DBSession = Depends(get_session),
                  legal_name: str = Form(""), reply_to_email: str = Form(""), support_phone: str = Form(""),
                  csrf_token: str = Form("")):
     require_csrf(request, csrf_token)
@@ -578,7 +609,7 @@ POLICY_LIMITS: dict[str, tuple[float, float, str]] = {
 
 
 @router.post("/app/settings/policy")
-async def save_policy(request: Request, p: Principal = Depends(current_principal), db: DBSession = Depends(get_session)):
+async def save_policy(request: Request, p: Principal = Depends(require_onboarded), db: DBSession = Depends(get_session)):
     form = await request.form()
     require_csrf(request, str(form.get("csrf_token", "")))
     require_owner(p)
@@ -611,7 +642,7 @@ async def save_policy(request: Request, p: Principal = Depends(current_principal
 
 
 @router.post("/app/settings/agent")
-def save_agent(request: Request, p: Principal = Depends(current_principal), db: DBSession = Depends(get_session),
+def save_agent(request: Request, p: Principal = Depends(require_onboarded), db: DBSession = Depends(get_session),
                agent_enabled: str = Form(""), approval_required: str = Form(""), llm_provider: str = Form("rules"),
                csrf_token: str = Form("")):
     require_csrf(request, csrf_token)
@@ -634,7 +665,7 @@ def save_agent(request: Request, p: Principal = Depends(current_principal), db: 
 
 
 @router.post("/app/settings/razorpay")
-def save_razorpay(request: Request, p: Principal = Depends(current_principal), db: DBSession = Depends(get_session),
+def save_razorpay(request: Request, p: Principal = Depends(require_onboarded), db: DBSession = Depends(get_session),
                   key_id: str = Form(""), key_secret: str = Form(""), webhook_secret: str = Form(""),
                   csrf_token: str = Form("")):
     require_csrf(request, csrf_token)
@@ -655,7 +686,7 @@ def save_razorpay(request: Request, p: Principal = Depends(current_principal), d
 
 
 @router.get("/app/team", response_class=HTMLResponse)
-def team_page(request: Request, p: Principal = Depends(current_principal), db: DBSession = Depends(get_session)):
+def team_page(request: Request, p: Principal = Depends(require_onboarded), db: DBSession = Depends(get_session)):
     from .models import Token
 
     users = db.exec(select(User).where(User.org_id == p.org_id).order_by(User.created_at)).all()
@@ -666,7 +697,7 @@ def team_page(request: Request, p: Principal = Depends(current_principal), db: D
 
 
 @router.post("/app/team/invite")
-def invite_member(request: Request, p: Principal = Depends(current_principal), db: DBSession = Depends(get_session),
+def invite_member(request: Request, p: Principal = Depends(require_onboarded), db: DBSession = Depends(get_session),
                   email: str = Form(...), role: str = Form("member"), csrf_token: str = Form("")):
     require_csrf(request, csrf_token)
     require_owner(p)
@@ -687,7 +718,7 @@ def invite_member(request: Request, p: Principal = Depends(current_principal), d
 
 
 @router.post("/app/team/revoke-invite/{token_id}")
-def revoke_invite(token_id: int, request: Request, p: Principal = Depends(current_principal),
+def revoke_invite(token_id: int, request: Request, p: Principal = Depends(require_onboarded),
                   db: DBSession = Depends(get_session), csrf_token: str = Form("")):
     require_csrf(request, csrf_token)
     require_owner(p)
@@ -704,7 +735,7 @@ def revoke_invite(token_id: int, request: Request, p: Principal = Depends(curren
 
 
 @router.post("/app/team/{user_id}")
-def update_member(user_id: int, request: Request, p: Principal = Depends(current_principal),
+def update_member(user_id: int, request: Request, p: Principal = Depends(require_onboarded),
                   db: DBSession = Depends(get_session), action: str = Form(...), csrf_token: str = Form("")):
     require_csrf(request, csrf_token)
     require_owner(p)
@@ -738,7 +769,7 @@ def update_member(user_id: int, request: Request, p: Principal = Depends(current
 
 
 @router.post("/app/settings/refit-risk")
-def refit_risk(request: Request, p: Principal = Depends(current_principal), db: DBSession = Depends(get_session),
+def refit_risk(request: Request, p: Principal = Depends(require_onboarded), db: DBSession = Depends(get_session),
                csrf_token: str = Form("")):
     require_csrf(request, csrf_token)
     require_owner(p)
@@ -755,13 +786,13 @@ def refit_risk(request: Request, p: Principal = Depends(current_principal), db: 
 # Billing
 # ============================================================================================
 @router.get("/app/billing", response_class=HTMLResponse)
-def billing_page(request: Request, p: Principal = Depends(current_principal), db: DBSession = Depends(get_session)):
+def billing_page(request: Request, p: Principal = Depends(require_onboarded), db: DBSession = Depends(get_session)):
     used = db.exec(select(func.count(InvoiceRow.id)).where(InvoiceRow.org_id == p.org_id, InvoiceRow.status.in_(("open", "partially_paid")))).one()
     return render(request, "billing.html", p, plans=billing_mod.CATALOGUE, used=used, limit=p.org.invoice_limit)
 
 
 @router.post("/app/billing/subscribe")
-def subscribe(request: Request, p: Principal = Depends(current_principal), db: DBSession = Depends(get_session),
+def subscribe(request: Request, p: Principal = Depends(require_onboarded), db: DBSession = Depends(get_session),
               plan: str = Form(...), csrf_token: str = Form("")):
     require_csrf(request, csrf_token)
     require_owner(p)
@@ -845,7 +876,7 @@ def healthz(db: DBSession = Depends(get_session)):
 
 
 @router.get("/app/audit", response_class=HTMLResponse)
-def audit_page(request: Request, p: Principal = Depends(current_principal), db: DBSession = Depends(get_session), limit: int = 200):
+def audit_page(request: Request, p: Principal = Depends(require_onboarded), db: DBSession = Depends(get_session), limit: int = 200):
     rows = db.exec(select(AuditRow).where(AuditRow.org_id == p.org_id).order_by(AuditRow.seq.desc()).limit(limit)).all()
     ok, msg = verify_chain(db, p.org_id)
     invs = {i.id: i for i in db.exec(select(InvoiceRow).where(InvoiceRow.org_id == p.org_id)).all()}
@@ -854,7 +885,7 @@ def audit_page(request: Request, p: Principal = Depends(current_principal), db: 
 
 
 @router.get("/app/audit/export.jsonl")
-def audit_export(p: Principal = Depends(current_principal), db: DBSession = Depends(get_session)):
+def audit_export(p: Principal = Depends(require_onboarded), db: DBSession = Depends(get_session)):
     rows = db.exec(select(AuditRow).where(AuditRow.org_id == p.org_id).order_by(AuditRow.seq)).all()
     lines = "\n".join(json.dumps({"seq": r.seq, "at": r.at.isoformat(), "event": r.event, "actor": r.actor,
                                   **json.loads(r.payload_json), "prev": r.prev, "hash": r.hash}, default=str) for r in rows)
