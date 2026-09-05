@@ -16,7 +16,7 @@ from ..razorpay_client import sign_webhook
 from .db import engine, init_db
 from .models import (
     AuditRow, Customer, Event, InvoiceRow, Org, Outbox, PaymentRow, Plan, PolicySettings,
-    SubscriptionStatus, User,
+    SubscriptionStatus, User, utcnow,
 )
 from .security import hash_password
 from .service import DbAudit, RecoveryEngine, import_csv, record_payment
