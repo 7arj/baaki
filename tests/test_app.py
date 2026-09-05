@@ -330,3 +330,26 @@ def test_approve_all_route_is_not_shadowed_by_the_id_route(client):
         msgs = s.exec(select(Outbox)).all()
         assert msgs and all(m.status == OutboxStatus.SENT for m in msgs)
         assert all(m.sent_at is not None for m in msgs)
+
+
+def test_unmatched_and_ignored_webhooks_return_cleanly(client):
+    """A valid signature with an unknown link id (or an unsubscribed event) must be a 200 with a
+    status, not a 500: audit.record("...", event=kind) collided with the method's positional
+    `event` parameter. Razorpay disables endpoints that keep erroring."""
+    from baaki.razorpay_client import sign_webhook
+
+    signup(client)
+    with Session(db_mod.engine()) as s:
+        slug = s.exec(select(Org)).first().slug
+
+    body = json.dumps({"event": "payment_link.paid",
+                       "payload": {"payment_link": {"entity": {"id": "plink_UNKNOWN", "notes": {}}},
+                                   "payment": {"entity": {"id": "pay_x", "amount": 100}}}}).encode()
+    sig = sign_webhook(body, "baaki-sandbox")
+    r = client.post(f"/webhooks/razorpay/{slug}", content=body, headers={"X-Razorpay-Signature": sig})
+    assert r.status_code == 200 and r.json()["status"] == "unmatched"
+
+    body2 = json.dumps({"event": "refund.created", "payload": {}}).encode()
+    r2 = client.post(f"/webhooks/razorpay/{slug}", content=body2,
+                     headers={"X-Razorpay-Signature": sign_webhook(body2, "baaki-sandbox")})
+    assert r2.status_code == 200 and r2.json()["status"] == "ignored"

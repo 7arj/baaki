@@ -831,11 +831,11 @@ async def razorpay_webhook(slug: str, request: Request, db: DBSession = Depends(
     kind = event.get("event", "")
     if kind.startswith("subscription."):
         status = billing_mod.apply_subscription_event(db, org, kind, event)
-        audit.record("subscription_event", event=kind, status=status)
+        audit.record("subscription_event", webhook_event=kind, status=status)
         db.commit()
         return {"status": status}
     if kind not in ("payment_link.paid", "payment_link.partially_paid"):
-        audit.record("webhook_ignored", event=kind)
+        audit.record("webhook_ignored", webhook_event=kind)
         db.commit()
         return {"status": "ignored"}
 
@@ -846,7 +846,7 @@ async def razorpay_webhook(slug: str, request: Request, db: DBSession = Depends(
     if not row:
         row = db.exec(select(InvoiceRow).where(InvoiceRow.org_id == org.id, InvoiceRow.payment_link_id == link["id"])).first()
     if not row:
-        audit.record("webhook_unmatched", event=kind, link_id=link["id"])
+        audit.record("webhook_unmatched", webhook_event=kind, link_id=link["id"])
         db.commit()
         return {"status": "unmatched"}
     credited = record_payment(db, org.id, row, payment["id"], int(payment["amount"]), "razorpay_link", audit)
