@@ -92,7 +92,10 @@ def seed(reset: bool = True) -> dict:
             org.rzp_key_secret_enc = encrypt_secret(os.environ["RAZORPAY_KEY_SECRET"])
         db.add(org); db.commit(); db.refresh(org)
         db.add(PolicySettings(org_id=org.id))
-        db.add(User(org_id=org.id, email=EMAIL, name="Arjun Sharma", password_hash=hash_password(PASSWORD)))
+        # Verified at seed time: it is not a real inbox, and the banner nagging to confirm it is
+        # noise on an account whose whole purpose is demonstration.
+        db.add(User(org_id=org.id, email=EMAIL, name="Arjun Sharma", password_hash=hash_password(PASSWORD),
+                    email_verified_at=utcnow()))
         db.commit()
 
         today = date.today()
