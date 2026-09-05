@@ -106,6 +106,12 @@ def seed(reset: bool = True) -> dict:
             phone = f"+9198{rng.randint(10000000, 99999999)}"
             rows.append(f"{num},{cust},{email},{phone},{amt:.2f},{issued},{due},{desc}")
         import_csv(db, org, "\n".join(rows).encode())
+        # import_csv schedules new invoices for the real today; the seed's first pass is
+        # backdated, so pull them into its day or it finds nothing due.
+        for inv in db.exec(select(InvoiceRow).where(InvoiceRow.org_id == org.id)).all():
+            inv.next_action_on = today - timedelta(days=8)
+            db.add(inv)
+        db.commit()
 
         # Day 1: first contact for everything due.
         RecoveryEngine(db, org, today=today - timedelta(days=8)).run()
@@ -132,9 +138,15 @@ def seed(reset: bool = True) -> dict:
         dispatch_outbox(db, org.id, transport=_Silent())
 
         # Day 3: today's pass leaves a few messages awaiting a human, to show the approval queue.
+        # Pinned to mid-morning: a seed run in the evening must not produce an empty queue just
+        # because the agent correctly refuses to draft outside contact hours.
         org.approval_required = True
         db.add(org); db.commit()
-        RecoveryEngine(db, org, today=today).run()
+        from datetime import datetime, time as dtime
+
+        from ..domain import IST
+
+        RecoveryEngine(db, org, today=today, at=datetime.combine(today, dtime(10, 0), IST)).run()
 
         counts = {
             "invoices": len(db.exec(select(InvoiceRow).where(InvoiceRow.org_id == org.id)).all()),

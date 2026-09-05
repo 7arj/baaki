@@ -13,7 +13,7 @@ import io
 import json
 import math
 from dataclasses import replace
-from datetime import date, datetime, timedelta
+from datetime import date, datetime, time as dtime, timedelta
 
 from sqlmodel import Session as DBSession, func, select
 
@@ -362,9 +362,20 @@ class RecoveryEngine:
     """One pass over an org's ledger. Idempotent per day: an invoice already actioned today
     has `next_action_on` in the future and is skipped."""
 
-    def __init__(self, db: DBSession, org: Org, today: date | None = None, dry_run: bool = False):
+    def __init__(self, db: DBSession, org: Org, today: date | None = None, dry_run: bool = False,
+                 at: datetime | None = None):
         self.db, self.org = db, org
         self.today = today or datetime.now(IST).date()
+        # `at` fixes the clock the contact-hours rule sees. Seeding and replay pass mid-morning
+        # of their simulated day; a live run keeps the wall clock so real sends respect real
+        # hours. Without this, reseeding after 19:00 IST produced a ledger where the agent had
+        # politely refused to draft anything, which is correct conduct and a useless demo.
+        if at is not None:
+            self.now = at
+        elif self.today != datetime.now(IST).date():
+            self.now = datetime.combine(self.today, dtime(10, 0), IST)
+        else:
+            self.now = datetime.now(IST)
         self.dry_run = dry_run
         self.audit = DbAudit(db, org.id, actor="agent")
         self.policy = Policy(bounds_for(db, org.id))
@@ -404,6 +415,7 @@ class RecoveryEngine:
                 "actioned": self.actioned, "blocked": self.blocked, "queued": len(self.queued)}
 
     def _step(self, row: InvoiceRow) -> None:
+        now = self.now
         cust = self.db.get(Customer, row.customer_id)
         if cust and cust.do_not_contact and not row.cease_requested:
             row.cease_requested = True  # a cease request applies to every invoice for that customer
@@ -412,7 +424,6 @@ class RecoveryEngine:
 
         dom = _to_domain_invoice(row, self.today)
         debtor = _to_domain_debtor(cust, hist)
-        now = datetime.now(IST)
         ctx = DecisionContext(day=0, inv=dom, debtor=debtor,
                               allowed=self.policy.allowed_actions(dom, 0, now),
                               bounds=self.policy.describe(), stop_reason=self.policy.stop_reason(dom))
