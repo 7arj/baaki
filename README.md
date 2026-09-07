@@ -130,7 +130,7 @@ uv run python -m baaki app    # http://127.0.0.1:8080 · demo@baaki.app / baaki-
 uv sync
 uv run python -m baaki run --demo-faults   # three strategies, injected faults
 uv run python -m baaki serve               # simulation dashboard on :8000
-uv run pytest                              # 90 tests
+uv run pytest                              # 92 tests
 ```
 
 Optional LLM. The agent is provider-agnostic; both brains get the same prompt, schema and
@@ -187,5 +187,5 @@ baaki/
   server.py       simulation dashboard
   app/            the product: models, auth, service, billing, web, templates
 migrations/       alembic
-tests/            90 tests
+tests/            92 tests
 ```

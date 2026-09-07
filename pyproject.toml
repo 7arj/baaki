@@ -1,7 +1,7 @@
 [project]
 name = "baaki"
 version = "0.1.0"
-description = "Add your description here"
+description = "Bounded, auditable AI recovery of overdue SME receivables"
 readme = "README.md"
 requires-python = ">=3.12"
 dependencies = [
