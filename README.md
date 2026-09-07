@@ -3,6 +3,8 @@
 **Bounded, auditable AI recovery of overdue SME receivables.**
 Razorpay AI Buildathon, Track 3: AI Revenue Recovery.
 
+**▶ Demo video: https://youtu.be/wB3PliJkEHk**
+
 Indian SMEs are owed lakhs in overdue B2B invoices and chase them by hand. Baaki works the overdue
 ledger the way a good collections person would: a reminder with a Razorpay Payment Link, then
 partial payments or a bounded installment plan, a small settlement discount when the cap allows,

@@ -4,8 +4,8 @@
 
 ## Checklist
 - [x] Push this repo to public GitHub (https://github.com/7arj/baaki)
-- [ ] Record the 5-minute pitch (script below), upload unlisted to YouTube/Drive
-- [ ] Put the video link at the top of README
+- [x] Record the 5-minute pitch (script below), upload unlisted to YouTube/Drive: https://youtu.be/wB3PliJkEHk
+- [x] Put the video link at the top of README
 - [x] Ran on `gpt-5-mini` (335 calls, $0.40); numbers and the honest comparison are in the README
 - [x] Razorpay test keys wired: the demo creates real `plink_…` links and reconciles signed webhooks
 - [ ] Fill the form: track = AI Revenue Recovery, repo link, video link, one-paragraph architecture (copy "What makes it safe" from README)
