@@ -11,6 +11,7 @@
     {'route': '/login'} 438.5003
     {'route': '/app/invoices'} 0.0
   5xx ratio:            baaki:http_error_ratio:rate5m
+    (empty here: no 5xx series existed. Fixed in 967da1a with 'or vector(0)'; re-checked after deploy: 0)
   p50/p95/p99 latency (s), 15m:
     p50    0.0082
     p95    0.0848
