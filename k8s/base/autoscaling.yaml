@@ -1,0 +1,35 @@
+# Horizontal scaling on CPU: add web pods when average CPU passes 70% of the *request* (100m).
+# Only the stateless web tier scales; Postgres does not. No VPA alongside: both acting on CPU of
+# the same pods would fight each other.
+apiVersion: autoscaling/v2
+kind: HorizontalPodAutoscaler
+metadata:
+  name: baaki-web
+spec:
+  scaleTargetRef:
+    apiVersion: apps/v1
+    kind: Deployment
+    name: baaki-web
+  minReplicas: 2
+  maxReplicas: 5
+  metrics:
+    - type: Resource
+      resource:
+        name: cpu
+        target:
+          type: Utilization
+          averageUtilization: 70
+  behavior:
+    scaleDown:
+      stabilizationWindowSeconds: 120   # don't flap: wait 2 minutes of low load before removing pods
+---
+# Voluntary disruptions (node drain, cluster upgrade) may evict at most down to 1 web pod.
+apiVersion: policy/v1
+kind: PodDisruptionBudget
+metadata:
+  name: baaki-web
+spec:
+  minAvailable: 1
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: baaki-web

@@ -1,0 +1,26 @@
+# Layer-7 entry point. Traefik terminates TLS (self-signed cert for baaki.localhost, created by
+# scripts/create-secrets.sh) and forwards plain HTTP to the ClusterIP Service inside the cluster.
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: baaki
+  annotations:
+    # Plain http on port 80 is redirected to https by the Traefik entrypoint config.
+    traefik.ingress.kubernetes.io/router.entrypoints: websecure
+    traefik.ingress.kubernetes.io/router.tls: "true"
+spec:
+  ingressClassName: traefik
+  tls:
+    - hosts: [baaki.localhost]
+      secretName: baaki-tls
+  rules:
+    - host: baaki.localhost
+      http:
+        paths:
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: baaki-web
+                port:
+                  name: http

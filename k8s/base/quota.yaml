@@ -1,0 +1,27 @@
+# A ceiling for the whole namespace, so a runaway HPA or bad manifest can't starve the cluster.
+apiVersion: v1
+kind: ResourceQuota
+metadata:
+  name: baaki-quota
+spec:
+  hard:
+    requests.cpu: "2"
+    requests.memory: 3Gi
+    limits.cpu: "4"
+    limits.memory: 6Gi
+    persistentvolumeclaims: "2"
+---
+# Defaults for any container that forgets to declare resources (otherwise it would be BestEffort).
+apiVersion: v1
+kind: LimitRange
+metadata:
+  name: baaki-defaults
+spec:
+  limits:
+    - type: Container
+      defaultRequest:
+        cpu: 50m
+        memory: 64Mi
+      default:
+        cpu: 250m
+        memory: 256Mi

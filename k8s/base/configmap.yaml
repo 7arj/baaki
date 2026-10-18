@@ -1,0 +1,12 @@
+# Non-secret configuration. Secret values (DATABASE_URL, BAAKI_SECRET_KEY, POSTGRES_PASSWORD)
+# live in the "baaki-secrets" Secret instead.
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: baaki-config
+data:
+  BAAKI_ENV: production                    # session cookies get the Secure flag, so HTTPS is required
+  BAAKI_BASE_URL: https://baaki.localhost  # used in links inside emails
+  BAAKI_MIGRATE_ON_START: "false"          # the migrate Job owns the schema, not each web pod
+  POSTGRES_DB: baaki
+  POSTGRES_USER: baaki

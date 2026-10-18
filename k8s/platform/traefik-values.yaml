@@ -1,0 +1,37 @@
+# Traefik ingress controller for kind: runs on the control-plane node (the one with host ports
+# 80/443 mapped to the Mac) and binds those ports directly.
+deployment:
+  replicas: 1
+nodeSelector:
+  ingress-ready: "true"
+tolerations:
+  - key: node-role.kubernetes.io/control-plane
+    operator: Exists
+    effect: NoSchedule
+service:
+  type: ClusterIP
+ports:
+  web:
+    hostPort: 80
+    http:
+      redirections:
+        entryPoint:
+          to: websecure
+          scheme: https
+          permanent: true
+  websecure:
+    hostPort: 443
+ingressClass:
+  enabled: true
+  isDefaultClass: true
+providers:
+  kubernetesIngress:
+    enabled: true
+  kubernetesCRD:
+    enabled: false
+accessLog:
+  enabled: true
+  format: json
+metrics:
+  prometheus:
+    entryPoint: metrics

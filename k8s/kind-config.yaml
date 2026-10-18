@@ -1,0 +1,21 @@
+# Local cluster: one control plane + two workers in different "zones", so spreading pods across
+# failure domains and draining a node are real, not theoretical.
+#   kind create cluster --name baaki --config k8s/kind-config.yaml
+kind: Cluster
+apiVersion: kind.x-k8s.io/v1alpha4
+nodes:
+  - role: control-plane
+    labels:
+      ingress-ready: "true"
+    # The ingress controller binds host ports 80/443 on this node; kind forwards them to the Mac.
+    extraPortMappings:
+      - containerPort: 80
+        hostPort: 80
+      - containerPort: 443
+        hostPort: 443
+  - role: worker
+    labels:
+      topology.kubernetes.io/zone: zone-a
+  - role: worker
+    labels:
+      topology.kubernetes.io/zone: zone-b
