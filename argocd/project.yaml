@@ -1,0 +1,17 @@
+# Argo CD project = a permission boundary. Applications in it may only deploy from this repo, only
+# into the "baaki" namespace, and the only cluster-wide object they may create is that Namespace.
+apiVersion: argoproj.io/v1alpha1
+kind: AppProject
+metadata:
+  name: baaki
+  namespace: argocd
+spec:
+  description: baaki receivables app
+  sourceRepos:
+    - https://github.com/7arj/baaki.git
+  destinations:
+    - server: https://kubernetes.default.svc
+      namespace: baaki
+  clusterResourceWhitelist:
+    - group: ""
+      kind: Namespace

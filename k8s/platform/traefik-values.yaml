@@ -1,0 +1,51 @@
+# Traefik ingress controller for kind: runs on the control-plane node (the one with host ports
+# 80/443 mapped to the Mac) and binds those ports directly.
+deployment:
+  replicas: 1
+# Host ports can only be held by one pod per node, so a surge rollout would deadlock (the new pod
+# can never schedule while the old one holds :80/:443). Replace in place instead: a few seconds of
+# ingress downtime on upgrade, acceptable for a single local ingress node.
+updateStrategy:
+  type: RollingUpdate
+  rollingUpdate:
+    maxSurge: 0
+    maxUnavailable: 1
+nodeSelector:
+  ingress-ready: "true"
+tolerations:
+  - key: node-role.kubernetes.io/control-plane
+    operator: Exists
+    effect: NoSchedule
+service:
+  type: ClusterIP
+ports:
+  web:
+    hostPort: 80
+    http:
+      redirections:
+        entryPoint:
+          to: websecure
+          scheme: https
+          permanent: true
+  websecure:
+    hostPort: 443
+ingressClass:
+  enabled: true
+  isDefaultClass: true
+providers:
+  kubernetesIngress:
+    enabled: true
+    # Without a cloud load balancer nothing fills in Ingress status, and Argo CD would wait forever
+    # for the Ingress to become Healthy. Publish the real address instead: kind forwards 127.0.0.1.
+    publishedService:
+      enabled: false
+    ingressEndpoint:
+      ip: 127.0.0.1
+  kubernetesCRD:
+    enabled: false
+accessLog:
+  enabled: true
+  format: json
+metrics:
+  prometheus:
+    entryPoint: metrics

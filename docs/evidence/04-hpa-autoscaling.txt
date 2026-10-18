@@ -1,0 +1,45 @@
+# HPA scale-in after load stops (stabilizationWindowSeconds: 120), 2026-10-18T06:21:51Z
+06:21:51  cpu=7%/70%  replicas=5
+06:22:07  cpu=7%/70%  replicas=5
+06:22:22  cpu=8%/70%  replicas=5
+06:22:37  cpu=7%/70%  replicas=5
+06:22:52  cpu=8%/70%  replicas=5
+06:23:08  cpu=8%/70%  replicas=5
+06:23:23  cpu=8%/70%  replicas=2
+
+# HPA scale-out under load (40 clients for 200s), 2026-10-18T06:23:23Z
+06:23:23  cpu=8%/70%  replicas=2  ready=2
+06:23:33  cpu=8%/70%  replicas=2  ready=2
+06:23:43  cpu=44%/70%  replicas=2  ready=2
+06:23:53  cpu=471%/70%  replicas=2  ready=2
+06:24:04  cpu=471%/70%  replicas=2  ready=5
+06:24:14  cpu=497%/70%  replicas=5  ready=5
+06:24:24  cpu=486%/70%  replicas=5  ready=5
+06:24:34  cpu=486%/70%  replicas=5  ready=5
+06:24:45  cpu=466%/70%  replicas=5  ready=5
+06:24:55  cpu=458%/70%  replicas=5  ready=5
+06:25:05  cpu=458%/70%  replicas=5  ready=5
+06:25:15  cpu=460%/70%  replicas=5  ready=5
+06:25:26  cpu=458%/70%  replicas=5  ready=5
+06:25:36  cpu=458%/70%  replicas=5  ready=5
+06:25:46  cpu=456%/70%  replicas=5  ready=5
+06:25:57  cpu=460%/70%  replicas=5  ready=5
+06:26:07  cpu=457%/70%  replicas=5  ready=5
+06:26:17  cpu=457%/70%  replicas=5  ready=5
+06:26:28  cpu=456%/70%  replicas=5  ready=5
+06:26:38  cpu=454%/70%  replicas=5  ready=5
+06:26:48  cpu=454%/70%  replicas=5  ready=5
+06:26:58  cpu=453%/70%  replicas=5  ready=5
+load result: 191420 requests in 200s (957 req/s): {200: 191420}
+Events:
+  Type     Reason                        Age                    From                       Message
+  Normal   SuccessfulRescale             26m                    horizontal-pod-autoscaler  New size: 2; reason: Current number of replicas below Spec.MinReplicas
+  Normal   SuccessfulRescale             9m33s                  horizontal-pod-autoscaler  New size: 4; reason: cpu resource utilization (percentage of request) above target
+  Normal   SuccessfulRescale             4m3s                   horizontal-pod-autoscaler  New size: 2; reason: All metrics below target
+  Normal   SuccessfulRescale             3m18s (x2 over 9m18s)  horizontal-pod-autoscaler  New size: 5; reason: cpu resource utilization (percentage of request) above target
+pods by node:
+  baaki-web-666d8c996b-2srl8 baaki-worker
+  baaki-web-666d8c996b-76xwz baaki-worker2
+  baaki-web-666d8c996b-kmd28 baaki-worker2
+  baaki-web-666d8c996b-w5kfp baaki-worker
+  baaki-web-666d8c996b-wcz74 baaki-worker2

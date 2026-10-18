@@ -1,0 +1,118 @@
+# The web app is stateless (sessions live in Postgres), so it is a Deployment: any pod can serve
+# any request, pods are interchangeable, and the HPA can add or remove them freely.
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: baaki-web
+  annotations:
+    argocd.argoproj.io/sync-wave: "2"
+spec:
+  # No "replicas" here on purpose: the HPA owns the pod count (min 2). If git also set it, Argo CD
+  # self-heal would keep resetting it and fight the autoscaler.
+  revisionHistoryLimit: 5
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: baaki-web
+  strategy:
+    type: RollingUpdate
+    rollingUpdate:
+      maxSurge: 1          # bring one new pod up at a time
+      maxUnavailable: 0    # never drop below the desired count; an old pod leaves only when a new one is Ready
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: baaki-web
+      annotations:
+        prometheus.io/scrape: "true"
+        prometheus.io/port: "8080"
+        prometheus.io/path: /metrics
+    spec:
+      serviceAccountName: baaki
+      automountServiceAccountToken: false
+      terminationGracePeriodSeconds: 30
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 10001
+        runAsGroup: 10001
+        seccompProfile:
+          type: RuntimeDefault
+      # Spread replicas over the two zones so losing one node never takes down every pod.
+      topologySpreadConstraints:
+        - maxSkew: 1
+          topologyKey: topology.kubernetes.io/zone
+          whenUnsatisfiable: ScheduleAnyway
+          labelSelector:
+            matchLabels:
+              app.kubernetes.io/name: baaki-web
+      affinity:
+        podAntiAffinity:
+          preferredDuringSchedulingIgnoredDuringExecution:
+            - weight: 100
+              podAffinityTerm:
+                topologyKey: kubernetes.io/hostname
+                labelSelector:
+                  matchLabels:
+                    app.kubernetes.io/name: baaki-web
+      containers:
+        - name: web
+          image: baaki
+          ports:
+            - name: http
+              containerPort: 8080
+          envFrom:
+            - configMapRef: {name: baaki-config}
+            - secretRef: {name: baaki-secrets}
+          # startup: allow up to 60s for the first boot before liveness starts judging.
+          startupProbe:
+            httpGet: {path: /healthz, port: http}
+            periodSeconds: 2
+            failureThreshold: 30
+          # liveness: restart only if the process itself is stuck. Never checks the database.
+          livenessProbe:
+            httpGet: {path: /healthz, port: http}
+            periodSeconds: 10
+            timeoutSeconds: 2
+            failureThreshold: 3
+          # readiness: DB reachable and schema migrated, else removed from the Service (not restarted).
+          readinessProbe:
+            httpGet: {path: /readyz, port: http}
+            periodSeconds: 5
+            timeoutSeconds: 2
+            failureThreshold: 2
+          lifecycle:
+            # Give the ingress a few seconds to stop routing here before SIGTERM, so in-flight
+            # requests aren't cut off during a rollout or scale-down.
+            preStop:
+              sleep:
+                seconds: 5
+          # requests < limits: Burstable QoS. Requests are what the scheduler reserves and what the
+          # HPA percentage is measured against.
+          resources:
+            requests: {cpu: 100m, memory: 192Mi}
+            limits: {cpu: 500m, memory: 384Mi}
+          securityContext:
+            allowPrivilegeEscalation: false
+            readOnlyRootFilesystem: true
+            capabilities: {drop: [ALL]}
+          volumeMounts:
+            - name: tmp
+              mountPath: /tmp   # large uploads spool here; the rest of the filesystem is read-only
+      volumes:
+        - name: tmp
+          emptyDir:
+            sizeLimit: 64Mi
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: baaki-web
+  labels:
+    app.kubernetes.io/name: baaki-web
+spec:
+  type: ClusterIP   # internal only; the Ingress is the single public entry point
+  selector:
+    app.kubernetes.io/name: baaki-web
+  ports:
+    - name: http
+      port: 80
+      targetPort: http

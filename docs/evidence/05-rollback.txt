@@ -1,0 +1,13 @@
+# Rollback by re-running an earlier deploy job (no rebuild), 2026-10-18T06:51:28Z
+06:51:28  live: {"version":"b77f87445a86798010f73d72274071eead3824bf"}
+$ gh run rerun 39104938931 --job 117608997777    # run that built and scanned e4d4890
+deploy/local is now: 4c3ec55 deploy: baaki e4d4890 (devops-improvements, run 39104938931)
+06:52:21  live: {"version":"e4d4890707cdc931fb94bc22439b47535da48012"}
+Argo CD last deploy: 4c3ec55 at 2026-10-18T06:52:06Z
+
+## roll forward again: re-run the deploy job of the b77f874 run
+$ gh run rerun 39105090877 --job 117609476862
+06:53:29  live: {"version":"b77f87445a86798010f73d72274071eead3824bf"}
+sign in: 303 https://baaki.localhost/app
+invoice ledger: 14 invoices visible
+PASS

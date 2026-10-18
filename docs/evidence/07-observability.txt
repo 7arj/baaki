@@ -1,0 +1,35 @@
+# Observability: metrics, logs, alerts, 2026-10-18T06:53:45Z
+# running version: {"version":"b77f87445a86798010f73d72274071eead3824bf"}
+## Prometheus targets for baaki
+    http://10.244.2.45:8080/metrics up
+    http://10.244.2.44:8080/metrics up
+## RED
+  requests/s by route (1h, includes the earlier load test):  sum by (route) (rate(baaki_http_requests_total[1h]))
+    {'route': '/version'} 0.016
+    {'route': '/login'} 109.5349
+    {'route': '/app/invoices'} 0.0
+  5xx ratio (5m):  baaki:http_error_ratio:rate5m
+     0.0
+  latency percentiles over 1h (seconds):
+   p50:
+     0.0082
+   p95:
+     0.0848
+   p99:
+     0.17
+  share of requests under 500 ms (1h):
+     1.0
+## Alert rules loaded
+    BaakiNoReadyWebPods page inactive
+    BaakiPostgresDown page inactive
+    BaakiWorkerJobFailed ticket inactive
+    BaakiErrorBudgetFastBurn page inactive
+    BaakiErrorBudgetSlowBurn page inactive
+    BaakiErrorBudgetTicket ticket inactive
+    BaakiLatencySLOBreach ticket inactive
+## Structured access log (one JSON line per request)
+{"ts": "2026-10-18T06:53:46+0000", "level": "INFO", "logger": "baaki.access", "msg": "request", "request_id": "c49788b06f0b4ff2ae41cb0c520a97ac", "method": "GET", "route": "/app/invoices", "path": "/app/invoices", "status": 200, "duration_ms": 10.6, "version": "b77f87445a86798010f73d72274071eead3824bf"}
+## Request id round trip
+  sent X-Request-ID: evidence-1792306426 -> echoed: x-request-id: evidence-1792306426
+  matching log line:
+    {"ts": "2026-10-18T06:53:46+0000", "level": "INFO", "logger": "baaki.access", "msg": "request", "request_id": "evidence-1792306426", "method": "GET", "route": "/login", "path": "/login", "status": 200, "duration_ms": 13.8, "version": "b77f87445a86798010f73d72274071eead3824bf"}

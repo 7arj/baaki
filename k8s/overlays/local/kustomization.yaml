@@ -1,0 +1,13 @@
+# The deployed environment (local kind cluster). The base stays environment-neutral; anything
+# that differs per environment goes in an overlay like this one, so there are no drifting copies.
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+resources:
+  - ../../base
+
+# On the deploy/local branch, CI sets newTag to the commit SHA it just built, tested and pushed.
+# On source branches this value is just the last tag built locally; Argo CD only reads deploy/local.
+images:
+  - name: baaki
+    newName: ghcr.io/7arj/baaki
+    newTag: b77f87445a86798010f73d72274071eead3824bf

@@ -1,0 +1,29 @@
+# Desired state = k8s/overlays/local on this branch. Argo CD polls git (every ~3 min) and applies
+# any difference to the cluster, in sync-wave order: Postgres (0) -> migrate Job (1) -> web (2).
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: baaki
+  namespace: argocd
+spec:
+  project: baaki
+  source:
+    repoURL: https://github.com/7arj/baaki.git
+    # Written only by CI's deploy job: source commit + the image tag it built and scanned.
+    targetRevision: deploy/local
+    path: k8s/overlays/local
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: baaki
+  syncPolicy:
+    automated:
+      prune: true      # a manifest deleted from git is deleted from the cluster
+      selfHeal: true   # a manual kubectl change is reverted to what git says (no drift)
+    syncOptions:
+      - CreateNamespace=true
+    retry:
+      limit: 5
+      backoff:
+        duration: 10s
+        factor: 2
+        maxDuration: 3m

@@ -1,0 +1,39 @@
+# Quick local check of the container against Postgres, before Kubernetes.
+#   docker compose up --build    then open http://localhost:8080
+# Credentials below are throwaway local-only values, not secrets of any real system.
+services:
+  db:
+    image: postgres:17-alpine
+    environment:
+      POSTGRES_DB: baaki
+      POSTGRES_USER: baaki
+      POSTGRES_PASSWORD: local-dev-only
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U baaki -d baaki"]
+      interval: 3s
+      retries: 20
+
+  migrate:
+    build: .
+    command: ["python", "-m", "baaki", "migrate"]
+    environment: &env
+      DATABASE_URL: postgresql+psycopg://baaki:local-dev-only@db:5432/baaki
+      BAAKI_SECRET_KEY: local-dev-only-not-a-real-key
+    depends_on:
+      db:
+        condition: service_healthy
+
+  web:
+    build: .
+    ports: ["8080:8080"]
+    environment:
+      <<: *env
+      BAAKI_MIGRATE_ON_START: "false"
+    depends_on:
+      migrate:
+        condition: service_completed_successfully
+
+volumes:
+  pgdata:

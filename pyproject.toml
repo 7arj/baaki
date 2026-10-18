@@ -13,6 +13,8 @@ dependencies = [
     "itsdangerous>=2.2.0",
     "jinja2>=3.1.6",
     "openai>=3.8.0",
+    "prometheus-client>=0.26.0",
+    "psycopg[binary]>=3.3.6",
     "python-dotenv>=1.2.3",
     "python-multipart>=0.0.32",
     "razorpay>=2.0.1",
@@ -23,7 +25,10 @@ dependencies = [
 
 [dependency-groups]
 dev = [
+    "bandit>=1.9.4",
+    "pip-audit>=2.10.1",
     "pytest>=9.1.1",
+    "ruff>=0.17.1",
 ]
 
 [tool.pytest.ini_options]
@@ -32,3 +37,7 @@ testpaths = ["tests"]
 
 [project.scripts]
 baaki = "baaki.__main__:main"
+
+[tool.ruff.lint]
+# CI gate on errors that are bugs (syntax errors, undefined names), not on style in existing code.
+select = ["E9", "F63", "F7", "F82"]

@@ -1,0 +1,16 @@
+# Drift and self-heal (Argo CD selfHeal + prune), 2026-10-18T06:07:48Z
+$ kubectl -n baaki patch configmap baaki-config -p '{"data":{"BAAKI_ENV":"development"}}'
+configmap/baaki-config patched
+$ kubectl -n baaki delete service baaki-web
+service "baaki-web" deleted from baaki namespace
+immediately after:
+  BAAKI_ENV=development  Error from server (NotFound): services "baaki-web" not found
+after ~6s, Argo CD reverted to git:
+  BAAKI_ENV=production
+  NAME        TYPE        CLUSTER-IP     EXTERNAL-IP   PORT(S)   AGE
+  baaki-web   ClusterIP   10.96.196.61   <none>        80/TCP    3s
+$ kubectl -n argocd get app baaki
+NAME    SYNC STATUS   HEALTH STATUS
+baaki   Synced        Progressing
+$ curl -sk https://baaki.localhost/readyz
+{"status":"ready","schema":"7f0f81cb5b65"}

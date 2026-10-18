@@ -111,7 +111,8 @@ class WhatsAppTransport:
             headers={"Authorization": f"Bearer {self.token}", "Content-Type": "application/json"},
         )
         try:
-            with urllib.request.urlopen(req, timeout=20) as resp:
+            # bandit B310: the URL is always the fixed https Graph API constant, never user input.
+            with urllib.request.urlopen(req, timeout=20) as resp:  # nosec B310
                 data = json.loads(resp.read().decode())
         except urllib.error.HTTPError as e:
             detail = e.read().decode()[:300]

@@ -1,0 +1,683 @@
+{
+ "title": "baaki: service health",
+ "uid": "baaki-health",
+ "tags": [
+  "baaki"
+ ],
+ "timezone": "browser",
+ "schemaVersion": 39,
+ "time": {
+  "from": "now-1h",
+  "to": "now"
+ },
+ "refresh": "30s",
+ "panels": [
+  {
+   "type": "row",
+   "title": "SLOs (user requests only; probes excluded)",
+   "collapsed": false,
+   "gridPos": {
+    "x": 0,
+    "y": 0,
+    "w": 24,
+    "h": 1
+   },
+   "panels": []
+  },
+  {
+   "type": "stat",
+   "title": "Availability (30d SLO 99.5%)",
+   "description": "Share of non-5xx requests over the selected range",
+   "datasource": {
+    "type": "prometheus",
+    "uid": "prometheus"
+   },
+   "gridPos": {
+    "x": 0,
+    "y": 1,
+    "w": 6,
+    "h": 6
+   },
+   "fieldConfig": {
+    "defaults": {
+     "unit": "percentunit"
+    },
+    "overrides": []
+   },
+   "options": {
+    "legend": {
+     "displayMode": "list",
+     "placement": "bottom"
+    },
+    "reduceOptions": {
+     "calcs": [
+      "lastNotNull"
+     ]
+    }
+   },
+   "targets": [
+    {
+     "datasource": {
+      "type": "prometheus",
+      "uid": "prometheus"
+     },
+     "expr": "1 - ((sum(increase(baaki_http_requests_total{status=~\"5..\"}[$__range])) or vector(0)) / clamp_min(sum(increase(baaki_http_requests_total[$__range])),1))",
+     "legendFormat": "availability",
+     "refId": "A"
+    }
+   ]
+  },
+  {
+   "type": "stat",
+   "title": "Error budget remaining",
+   "description": "1 = untouched, 0 = spent, negative = SLO breached",
+   "datasource": {
+    "type": "prometheus",
+    "uid": "prometheus"
+   },
+   "gridPos": {
+    "x": 6,
+    "y": 1,
+    "w": 6,
+    "h": 6
+   },
+   "fieldConfig": {
+    "defaults": {
+     "unit": "percentunit"
+    },
+    "overrides": []
+   },
+   "options": {
+    "legend": {
+     "displayMode": "list",
+     "placement": "bottom"
+    },
+    "reduceOptions": {
+     "calcs": [
+      "lastNotNull"
+     ]
+    }
+   },
+   "targets": [
+    {
+     "datasource": {
+      "type": "prometheus",
+      "uid": "prometheus"
+     },
+     "expr": "1 - ((sum(increase(baaki_http_requests_total{status=~\"5..\"}[$__range])) or vector(0)) / clamp_min(sum(increase(baaki_http_requests_total[$__range])),1)) / 0.005",
+     "legendFormat": "budget left",
+     "refId": "A"
+    }
+   ]
+  },
+  {
+   "type": "stat",
+   "title": "Fast requests (<500ms, SLO 95%)",
+   "description": "",
+   "datasource": {
+    "type": "prometheus",
+    "uid": "prometheus"
+   },
+   "gridPos": {
+    "x": 12,
+    "y": 1,
+    "w": 6,
+    "h": 6
+   },
+   "fieldConfig": {
+    "defaults": {
+     "unit": "percentunit"
+    },
+    "overrides": []
+   },
+   "options": {
+    "legend": {
+     "displayMode": "list",
+     "placement": "bottom"
+    },
+    "reduceOptions": {
+     "calcs": [
+      "lastNotNull"
+     ]
+    }
+   },
+   "targets": [
+    {
+     "datasource": {
+      "type": "prometheus",
+      "uid": "prometheus"
+     },
+     "expr": "baaki:http_fast_ratio:rate5m",
+     "legendFormat": "< 500 ms",
+     "refId": "A"
+    }
+   ]
+  },
+  {
+   "type": "stat",
+   "title": "Burn rate (1h)",
+   "description": "1 = spending budget exactly on schedule; 14.4 pages",
+   "datasource": {
+    "type": "prometheus",
+    "uid": "prometheus"
+   },
+   "gridPos": {
+    "x": 18,
+    "y": 1,
+    "w": 6,
+    "h": 6
+   },
+   "fieldConfig": {
+    "defaults": {
+     "unit": "short"
+    },
+    "overrides": []
+   },
+   "options": {
+    "legend": {
+     "displayMode": "list",
+     "placement": "bottom"
+    },
+    "reduceOptions": {
+     "calcs": [
+      "lastNotNull"
+     ]
+    }
+   },
+   "targets": [
+    {
+     "datasource": {
+      "type": "prometheus",
+      "uid": "prometheus"
+     },
+     "expr": "baaki:http_error_ratio:rate1h / 0.005",
+     "legendFormat": "burn rate",
+     "refId": "A"
+    }
+   ]
+  },
+  {
+   "type": "row",
+   "title": "RED: rate, errors, duration",
+   "collapsed": false,
+   "gridPos": {
+    "x": 0,
+    "y": 7,
+    "w": 24,
+    "h": 1
+   },
+   "panels": []
+  },
+  {
+   "type": "timeseries",
+   "title": "Requests per second by route",
+   "description": "",
+   "datasource": {
+    "type": "prometheus",
+    "uid": "prometheus"
+   },
+   "gridPos": {
+    "x": 0,
+    "y": 8,
+    "w": 8,
+    "h": 8
+   },
+   "fieldConfig": {
+    "defaults": {
+     "unit": "reqps"
+    },
+    "overrides": []
+   },
+   "options": {
+    "legend": {
+     "displayMode": "list",
+     "placement": "bottom"
+    },
+    "reduceOptions": {
+     "calcs": [
+      "lastNotNull"
+     ]
+    }
+   },
+   "targets": [
+    {
+     "datasource": {
+      "type": "prometheus",
+      "uid": "prometheus"
+     },
+     "expr": "sum by (route) (rate(baaki_http_requests_total[5m]))",
+     "legendFormat": "{{route}}",
+     "refId": "A"
+    }
+   ]
+  },
+  {
+   "type": "timeseries",
+   "title": "Error ratio (5xx)",
+   "description": "",
+   "datasource": {
+    "type": "prometheus",
+    "uid": "prometheus"
+   },
+   "gridPos": {
+    "x": 8,
+    "y": 8,
+    "w": 8,
+    "h": 8
+   },
+   "fieldConfig": {
+    "defaults": {
+     "unit": "percentunit"
+    },
+    "overrides": []
+   },
+   "options": {
+    "legend": {
+     "displayMode": "list",
+     "placement": "bottom"
+    },
+    "reduceOptions": {
+     "calcs": [
+      "lastNotNull"
+     ]
+    }
+   },
+   "targets": [
+    {
+     "datasource": {
+      "type": "prometheus",
+      "uid": "prometheus"
+     },
+     "expr": "baaki:http_error_ratio:rate5m",
+     "legendFormat": "5xx ratio",
+     "refId": "A"
+    },
+    {
+     "datasource": {
+      "type": "prometheus",
+      "uid": "prometheus"
+     },
+     "expr": "(sum(rate(baaki_http_requests_total{status=~\"4..\"}[5m])) or vector(0)) / clamp_min(sum(rate(baaki_http_requests_total[5m])),1e-9)",
+     "legendFormat": "4xx ratio",
+     "refId": "B"
+    }
+   ]
+  },
+  {
+   "type": "timeseries",
+   "title": "Latency percentiles",
+   "description": "Percentiles, not averages: the average hides the slow tail",
+   "datasource": {
+    "type": "prometheus",
+    "uid": "prometheus"
+   },
+   "gridPos": {
+    "x": 16,
+    "y": 8,
+    "w": 8,
+    "h": 8
+   },
+   "fieldConfig": {
+    "defaults": {
+     "unit": "s"
+    },
+    "overrides": []
+   },
+   "options": {
+    "legend": {
+     "displayMode": "list",
+     "placement": "bottom"
+    },
+    "reduceOptions": {
+     "calcs": [
+      "lastNotNull"
+     ]
+    }
+   },
+   "targets": [
+    {
+     "datasource": {
+      "type": "prometheus",
+      "uid": "prometheus"
+     },
+     "expr": "histogram_quantile(0.5, sum by (le) (rate(baaki_http_request_duration_seconds_bucket[5m])))",
+     "legendFormat": "p50",
+     "refId": "A"
+    },
+    {
+     "datasource": {
+      "type": "prometheus",
+      "uid": "prometheus"
+     },
+     "expr": "histogram_quantile(0.95, sum by (le) (rate(baaki_http_request_duration_seconds_bucket[5m])))",
+     "legendFormat": "p95",
+     "refId": "B"
+    },
+    {
+     "datasource": {
+      "type": "prometheus",
+      "uid": "prometheus"
+     },
+     "expr": "histogram_quantile(0.99, sum by (le) (rate(baaki_http_request_duration_seconds_bucket[5m])))",
+     "legendFormat": "p99",
+     "refId": "C"
+    }
+   ]
+  },
+  {
+   "type": "row",
+   "title": "Saturation: pods, CPU, memory (USE)",
+   "collapsed": false,
+   "gridPos": {
+    "x": 0,
+    "y": 16,
+    "w": 24,
+    "h": 1
+   },
+   "panels": []
+  },
+  {
+   "type": "timeseries",
+   "title": "Web pods: ready vs desired (HPA)",
+   "description": "",
+   "datasource": {
+    "type": "prometheus",
+    "uid": "prometheus"
+   },
+   "gridPos": {
+    "x": 0,
+    "y": 17,
+    "w": 8,
+    "h": 8
+   },
+   "fieldConfig": {
+    "defaults": {
+     "unit": "short"
+    },
+    "overrides": []
+   },
+   "options": {
+    "legend": {
+     "displayMode": "list",
+     "placement": "bottom"
+    },
+    "reduceOptions": {
+     "calcs": [
+      "lastNotNull"
+     ]
+    }
+   },
+   "targets": [
+    {
+     "datasource": {
+      "type": "prometheus",
+      "uid": "prometheus"
+     },
+     "expr": "kube_deployment_status_replicas_available{namespace=\"baaki\",deployment=\"baaki-web\"}",
+     "legendFormat": "ready",
+     "refId": "A"
+    },
+    {
+     "datasource": {
+      "type": "prometheus",
+      "uid": "prometheus"
+     },
+     "expr": "kube_horizontalpodautoscaler_status_desired_replicas{namespace=\"baaki\",horizontalpodautoscaler=\"baaki-web\"}",
+     "legendFormat": "HPA desired",
+     "refId": "B"
+    }
+   ]
+  },
+  {
+   "type": "timeseries",
+   "title": "CPU per pod vs request",
+   "description": "",
+   "datasource": {
+    "type": "prometheus",
+    "uid": "prometheus"
+   },
+   "gridPos": {
+    "x": 8,
+    "y": 17,
+    "w": 8,
+    "h": 8
+   },
+   "fieldConfig": {
+    "defaults": {
+     "unit": "cores"
+    },
+    "overrides": []
+   },
+   "options": {
+    "legend": {
+     "displayMode": "list",
+     "placement": "bottom"
+    },
+    "reduceOptions": {
+     "calcs": [
+      "lastNotNull"
+     ]
+    }
+   },
+   "targets": [
+    {
+     "datasource": {
+      "type": "prometheus",
+      "uid": "prometheus"
+     },
+     "expr": "sum by (pod) (rate(container_cpu_usage_seconds_total{namespace=\"baaki\",container!=\"\"}[5m]))",
+     "legendFormat": "{{pod}}",
+     "refId": "A"
+    },
+    {
+     "datasource": {
+      "type": "prometheus",
+      "uid": "prometheus"
+     },
+     "expr": "sum by (pod) (kube_pod_container_resource_requests{namespace=\"baaki\",resource=\"cpu\",pod=~\"baaki-web.*\"})",
+     "legendFormat": "request {{pod}}",
+     "refId": "B"
+    }
+   ]
+  },
+  {
+   "type": "timeseries",
+   "title": "Memory working set per pod",
+   "description": "",
+   "datasource": {
+    "type": "prometheus",
+    "uid": "prometheus"
+   },
+   "gridPos": {
+    "x": 16,
+    "y": 17,
+    "w": 8,
+    "h": 8
+   },
+   "fieldConfig": {
+    "defaults": {
+     "unit": "bytes"
+    },
+    "overrides": []
+   },
+   "options": {
+    "legend": {
+     "displayMode": "list",
+     "placement": "bottom"
+    },
+    "reduceOptions": {
+     "calcs": [
+      "lastNotNull"
+     ]
+    }
+   },
+   "targets": [
+    {
+     "datasource": {
+      "type": "prometheus",
+      "uid": "prometheus"
+     },
+     "expr": "sum by (pod) (container_memory_working_set_bytes{namespace=\"baaki\",container!=\"\"})",
+     "legendFormat": "{{pod}}",
+     "refId": "A"
+    }
+   ]
+  },
+  {
+   "type": "row",
+   "title": "Dependencies and batch",
+   "collapsed": false,
+   "gridPos": {
+    "x": 0,
+    "y": 25,
+    "w": 24,
+    "h": 1
+   },
+   "panels": []
+  },
+  {
+   "type": "stat",
+   "title": "Postgres ready",
+   "description": "",
+   "datasource": {
+    "type": "prometheus",
+    "uid": "prometheus"
+   },
+   "gridPos": {
+    "x": 0,
+    "y": 26,
+    "w": 8,
+    "h": 6
+   },
+   "fieldConfig": {
+    "defaults": {
+     "unit": "short"
+    },
+    "overrides": []
+   },
+   "options": {
+    "legend": {
+     "displayMode": "list",
+     "placement": "bottom"
+    },
+    "reduceOptions": {
+     "calcs": [
+      "lastNotNull"
+     ]
+    }
+   },
+   "targets": [
+    {
+     "datasource": {
+      "type": "prometheus",
+      "uid": "prometheus"
+     },
+     "expr": "kube_statefulset_status_replicas_ready{namespace=\"baaki\",statefulset=\"postgres\"}",
+     "legendFormat": "ready replicas",
+     "refId": "A"
+    }
+   ]
+  },
+  {
+   "type": "timeseries",
+   "title": "Container restarts (1h)",
+   "description": "",
+   "datasource": {
+    "type": "prometheus",
+    "uid": "prometheus"
+   },
+   "gridPos": {
+    "x": 8,
+    "y": 26,
+    "w": 8,
+    "h": 6
+   },
+   "fieldConfig": {
+    "defaults": {
+     "unit": "short"
+    },
+    "overrides": []
+   },
+   "options": {
+    "legend": {
+     "displayMode": "list",
+     "placement": "bottom"
+    },
+    "reduceOptions": {
+     "calcs": [
+      "lastNotNull"
+     ]
+    }
+   },
+   "targets": [
+    {
+     "datasource": {
+      "type": "prometheus",
+      "uid": "prometheus"
+     },
+     "expr": "sum by (pod) (increase(kube_pod_container_status_restarts_total{namespace=\"baaki\"}[1h]))",
+     "legendFormat": "{{pod}}",
+     "refId": "A"
+    }
+   ]
+  },
+  {
+   "type": "stat",
+   "title": "Worker job outcomes",
+   "description": "",
+   "datasource": {
+    "type": "prometheus",
+    "uid": "prometheus"
+   },
+   "gridPos": {
+    "x": 16,
+    "y": 26,
+    "w": 8,
+    "h": 6
+   },
+   "fieldConfig": {
+    "defaults": {
+     "unit": "short"
+    },
+    "overrides": []
+   },
+   "options": {
+    "legend": {
+     "displayMode": "list",
+     "placement": "bottom"
+    },
+    "reduceOptions": {
+     "calcs": [
+      "lastNotNull"
+     ]
+    }
+   },
+   "targets": [
+    {
+     "datasource": {
+      "type": "prometheus",
+      "uid": "prometheus"
+     },
+     "expr": "sum(kube_job_status_succeeded{namespace=\"baaki\",job_name=~\"baaki-worker-.*\"})",
+     "legendFormat": "succeeded",
+     "refId": "A"
+    },
+    {
+     "datasource": {
+      "type": "prometheus",
+      "uid": "prometheus"
+     },
+     "expr": "sum(kube_job_status_failed{namespace=\"baaki\",job_name=~\"baaki-worker-.*\"})",
+     "legendFormat": "failed",
+     "refId": "B"
+    }
+   ]
+  }
+ ],
+ "templating": {
+  "list": []
+ },
+ "annotations": {
+  "list": []
+ }
+}

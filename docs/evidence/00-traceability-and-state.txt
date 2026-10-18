@@ -1,0 +1,13 @@
+# Traceability: commit -> CI run -> image -> deploy commit -> running pods, 2026-10-18T06:53:59Z
+live /version:              b77f87445a86798010f73d72274071eead3824bf
+source commit:              b77f874 Note the error-ratio fix in the observability evidence
+CI run for that commit:     success https://github.com/7arj/baaki/actions/runs/39105090877
+deploy/local head:          c791ba2 deploy: baaki b77f874 (devops-improvements, run 39105090877)
+Argo CD synced revision:    c791ba2  (Synced/Healthy)
+image in running pods:      ghcr.io/7arj/baaki:b77f87445a86798010f73d72274071eead3824bf
+GIT_SHA env in a pod:       b77f87445a86798010f73d72274071eead3824bf
+image OCI revision label:   b77f87445a86798010f73d72274071eead3824bf  (read on the kind node: crictl inspecti)
+
+$ kubectl -n baaki get deploy,sts,cronjob,job,svc,ingress,hpa,pdb,pvc
+NAME                        READY   UP-TO-DATE   AVAILABLE   AGE
+deployment.apps/baaki-web   2/2     

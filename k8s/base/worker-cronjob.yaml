@@ -1,0 +1,46 @@
+# The daily recovery pass (PRODUCT.md: "python -m baaki worker, from cron, daily").
+# 04:30 UTC = 10:00 IST, inside the contact-hours window the policy engine enforces.
+apiVersion: batch/v1
+kind: CronJob
+metadata:
+  name: baaki-worker
+spec:
+  schedule: "30 4 * * *"
+  timeZone: Etc/UTC
+  # Never start a second run while one is still going. The app also takes a per-org lock row in
+  # Postgres (org_lock), so even a manual run can't double-send reminders.
+  concurrencyPolicy: Forbid
+  startingDeadlineSeconds: 3600
+  successfulJobsHistoryLimit: 3
+  failedJobsHistoryLimit: 3
+  jobTemplate:
+    spec:
+      backoffLimit: 2
+      activeDeadlineSeconds: 1800
+      template:
+        metadata:
+          labels:
+            app.kubernetes.io/name: baaki-worker
+        spec:
+          serviceAccountName: baaki
+          automountServiceAccountToken: false
+          restartPolicy: Never
+          securityContext:
+            runAsNonRoot: true
+            runAsUser: 10001
+            seccompProfile:
+              type: RuntimeDefault
+          containers:
+            - name: worker
+              image: baaki
+              command: ["python", "-m", "baaki", "worker"]
+              envFrom:
+                - configMapRef: {name: baaki-config}
+                - secretRef: {name: baaki-secrets}
+              resources:
+                requests: {cpu: 100m, memory: 192Mi}
+                limits: {cpu: 500m, memory: 512Mi}
+              securityContext:
+                allowPrivilegeEscalation: false
+                readOnlyRootFilesystem: true
+                capabilities: {drop: [ALL]}

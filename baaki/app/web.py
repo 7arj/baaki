@@ -16,7 +16,7 @@ from sqlmodel import Session as DBSession, func, select
 
 from ..domain import rupees
 from ..razorpay_client import verify_webhook
-from . import accounts, billing as billing_mod, clerk_auth
+from . import accounts, billing as billing_mod, clerk_auth, ops
 from .db import get_session, init_db
 from .models import (
     AuditRow, Customer, Event, InvoiceRow, Org, Outbox, OutboxStatus, PaymentRow,
@@ -42,7 +42,7 @@ from functools import lru_cache
 
 @lru_cache(maxsize=32)
 def _asset_fingerprint(name: str, mtime_ns: int) -> str:
-    return _hashlib.sha1((BASE / "static" / name).read_bytes()).hexdigest()[:10]
+    return _hashlib.sha1((BASE / "static" / name).read_bytes(), usedforsecurity=False).hexdigest()[:10]
 
 
 def asset_url(name: str) -> str:
@@ -897,8 +897,12 @@ def audit_export(p: Principal = Depends(require_onboarded), db: DBSession = Depe
 # ============================================================================================
 def create_app() -> FastAPI:
     app = FastAPI(title="Baaki", docs_url=None, redoc_url=None)
-    init_db()
+    # On Kubernetes a one-off migration Job owns the schema, so many web pods starting at once
+    # don't race each other through Alembic. Locally the app still migrates itself on start.
+    if os.environ.get("BAAKI_MIGRATE_ON_START", "true").lower() != "false":
+        init_db()
     app.mount("/static", StaticFiles(directory=str(BASE / "static")), name="static")
+    ops.install(app)
     app.include_router(router)
 
     @app.exception_handler(HTTPException)

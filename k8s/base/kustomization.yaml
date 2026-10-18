@@ -1,0 +1,35 @@
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+namespace: baaki
+
+labels:
+  - pairs:
+      app.kubernetes.io/part-of: baaki
+    includeSelectors: false
+
+resources:
+  - namespace.yaml
+  - quota.yaml
+  - serviceaccount.yaml
+  - configmap.yaml
+  - postgres.yaml
+  - migrate-job.yaml
+  - web.yaml
+  - worker-cronjob.yaml
+  - ingress.yaml
+  - autoscaling.yaml
+  - networkpolicy.yaml
+  - monitoring.yaml
+
+# Grafana's sidecar loads any ConfigMap labelled grafana_dashboard, from any namespace.
+configMapGenerator:
+  - name: baaki-dashboard
+    files:
+      - dashboards/baaki-health.json
+    options:
+      labels:
+        grafana_dashboard: "1"
+      disableNameSuffixHash: true
+
+# The Secret "baaki-secrets" and TLS secret "baaki-tls" are deliberately NOT here: they are
+# generated on the machine by scripts/create-secrets.sh and never committed to git.

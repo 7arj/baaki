@@ -126,13 +126,24 @@ uv run python -m baaki demo   # seed a tenant with a realistic ledger
 uv run python -m baaki app    # http://127.0.0.1:8080 · demo@baaki.app / baaki-demo-2026
 ```
 
+## Run it on Kubernetes
+
+Containerised and deployed to a local Kubernetes cluster with CI, GitOps (Argo CD), TLS, autoscaling
+and network policies. Setup, access, delivery flow, rollback and known limitations:
+[docs/DEVOPS.md](docs/DEVOPS.md).
+
+```bash
+scripts/cluster-up.sh                          # kind + Traefik + metrics-server + Argo CD + secrets
+scripts/smoke-journey.sh https://baaki.localhost
+```
+
 ## Run it
 
 ```bash
 uv sync
 uv run python -m baaki run --demo-faults   # three strategies, injected faults
 uv run python -m baaki serve               # simulation dashboard on :8000
-uv run pytest                              # 92 tests
+uv run pytest                              # 98 tests
 ```
 
 Optional LLM. The agent is provider-agnostic; both brains get the same prompt, schema and
