@@ -1,10 +1,15 @@
 # Source change -> checks -> image -> deployable manifest.
 #
-#   checks ─┬─> build (+ Trivy scan) ─> push to GHCR ─> bump k8s/overlays/local tag ─> Argo CD syncs
-#   secrets ┘        (push events only; PRs stop after the scan)
+#   checks ─┬─> build, smoke test, Trivy ─> push to GHCR ─> commit tag to branch deploy/local ─> Argo CD syncs
+#   secrets ┘                 (push events only; PRs stop after the scan)
 #
 # The cluster is a local kind cluster that GitHub can't reach, so CI never runs kubectl. It
 # records the new desired state in git and Argo CD, running inside the cluster, pulls it.
+#
+# Deploy commits go to their own branch, deploy/local = (source commit + one commit setting the
+# image tag). Source branches stay free of bot commits, so every source commit has its own CI run.
+# Rollback: re-run the "deploy" job of an earlier, known-good run; it re-points deploy/local at
+# that commit's image without rebuilding anything.
 name: ci
 
 on:
@@ -113,20 +118,24 @@ jobs:
           docker push "$IMAGE:$GITHUB_SHA"
 
   deploy:
-    name: promote to local overlay (GitOps)
+    name: promote to deploy/local (GitOps)
     needs: image
     if: github.event_name != 'pull_request'
     runs-on: ubuntu-latest
     permissions:
-      contents: write   # commit the new image tag back to this branch
+      contents: write   # push the deploy/local branch
+    concurrency:
+      group: deploy-local   # one promotion at a time, never cancelled half-way
+      cancel-in-progress: false
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
-      - name: set image tag to this commit
+        with:
+          ref: ${{ github.sha }}
+      - name: point the local overlay at this commit's image
         run: |
-          cd k8s/overlays/local
-          sed -i "s/^\(\s*newTag:\).*/\1 ${GITHUB_SHA}/" kustomization.yaml
-          git diff --quiet && { echo "already at ${GITHUB_SHA}"; exit 0; }
+          sed -i "s/^\(\s*newTag:\).*/\1 ${GITHUB_SHA}/" k8s/overlays/local/kustomization.yaml
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git commit -am "deploy: baaki ${GITHUB_SHA::7} to local [skip ci]"
-          git push
+          git commit -am "deploy: baaki ${GITHUB_SHA::7} (${GITHUB_REF_NAME}, run ${GITHUB_RUN_ID})"
+          git push --force origin HEAD:refs/heads/deploy/local
+          echo "deploy/local now runs ghcr.io/7arj/baaki:${GITHUB_SHA}" >> "$GITHUB_STEP_SUMMARY"

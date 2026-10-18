@@ -1,0 +1,63 @@
+# kube-prometheus-stack: Prometheus (scrape + store + alert rules), Alertmanager (routing),
+# Grafana (dashboards), node-exporter and kube-state-metrics (USE metrics for nodes and objects).
+# Sized down for a laptop kind cluster.
+
+# Pick up ServiceMonitors, PodMonitors and PrometheusRules from every namespace, not just the
+# ones carrying this Helm release's labels, so the app can ship its own monitoring config.
+prometheus:
+  prometheusSpec:
+    serviceMonitorSelectorNilUsesHelmValues: false
+    podMonitorSelectorNilUsesHelmValues: false
+    ruleSelectorNilUsesHelmValues: false
+    retention: 3d
+    scrapeInterval: 15s
+    evaluationInterval: 15s
+    resources:
+      requests: {cpu: 100m, memory: 400Mi}
+      limits: {memory: 1Gi}
+
+alertmanager:
+  alertmanagerSpec:
+    resources:
+      requests: {cpu: 10m, memory: 32Mi}
+  # Page vs ticket: severity=page goes to the on-call receiver (would be PagerDuty), severity=ticket
+  # to the team queue (would be a Jira/Slack webhook). Receivers are empty here: this is a laptop.
+  config:
+    route:
+      receiver: ticket-queue
+      group_by: [alertname, namespace]
+      group_wait: 30s
+      group_interval: 5m
+      repeat_interval: 4h
+      routes:
+        - matchers: ['severity="page"']
+          receiver: on-call-pager
+          repeat_interval: 1h
+        - matchers: ['alertname="Watchdog"']
+          receiver: "null"
+    receivers:
+      - name: "null"
+      - name: on-call-pager
+      - name: ticket-queue
+
+grafana:
+  # No adminPassword set: the chart generates a random one into the grafana Secret (see docs/DEVOPS.md).
+  defaultDashboardsTimezone: Asia/Kolkata
+  sidecar:
+    dashboards:
+      enabled: true
+      label: grafana_dashboard
+      searchNamespace: ALL
+  resources:
+    requests: {cpu: 50m, memory: 128Mi}
+
+# kind's control-plane components don't expose metrics on reachable addresses; skip their scrapes
+# rather than show permanently-down targets.
+kubeControllerManager:
+  enabled: false
+kubeScheduler:
+  enabled: false
+kubeEtcd:
+  enabled: false
+kubeProxy:
+  enabled: false

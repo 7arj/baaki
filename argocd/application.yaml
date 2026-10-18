@@ -9,9 +9,8 @@ spec:
   project: baaki
   source:
     repoURL: https://github.com/7arj/baaki.git
-    # The PR branch while under review, so main stays identical to the preserved baseline.
-    # After merge this becomes "main".
-    targetRevision: devops-improvements
+    # Written only by CI's deploy job: source commit + the image tag it built and scanned.
+    targetRevision: deploy/local
     path: k8s/overlays/local
   destination:
     server: https://kubernetes.default.svc

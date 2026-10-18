@@ -5,7 +5,8 @@ kind: Kustomization
 resources:
   - ../../base
 
-# CI rewrites newTag to the commit SHA it just built and pushed. Argo CD sees the commit and syncs.
+# On the deploy/local branch, CI sets newTag to the commit SHA it just built, tested and pushed.
+# On source branches this value is just the last tag built locally; Argo CD only reads deploy/local.
 images:
   - name: baaki
     newName: ghcr.io/7arj/baaki

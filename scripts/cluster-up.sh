@@ -9,6 +9,7 @@ kubectl config use-context kind-baaki
 
 helm repo add traefik https://traefik.github.io/charts >/dev/null
 helm repo add metrics-server https://kubernetes-sigs.github.io/metrics-server/ >/dev/null
+helm repo add prometheus-community https://prometheus-community.github.io/helm-charts >/dev/null
 helm repo update >/dev/null
 
 helm upgrade --install traefik traefik/traefik --version 41.7.1 \
@@ -17,6 +18,11 @@ helm upgrade --install traefik traefik/traefik --version 41.7.1 \
 # kind's kubelets use self-signed serving certs, hence --kubelet-insecure-tls (local only).
 helm upgrade --install metrics-server metrics-server/metrics-server --version 3.14.0 \
   --namespace kube-system --set 'args={--kubelet-insecure-tls}' --wait
+
+# Prometheus + Alertmanager + Grafana. Installed before the app because the app ships a
+# ServiceMonitor and PrometheusRule, which need these CRDs to exist.
+helm upgrade --install monitoring prometheus-community/kube-prometheus-stack --version 92.10.1 \
+  --namespace monitoring --create-namespace -f k8s/platform/monitoring-values.yaml --wait --timeout 10m
 
 # Argo CD (GitOps controller), pinned version, then the project + application that point it at this repo.
 kubectl get namespace argocd >/dev/null 2>&1 || kubectl create namespace argocd

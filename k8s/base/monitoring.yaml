@@ -1,0 +1,106 @@
+# What to watch and when to wake someone up. Picked up by the Prometheus Operator
+# (k8s/platform/monitoring-values.yaml) from any namespace.
+#
+# SLOs, measured on real user requests (probes and scrapes are excluded in baaki/app/ops.py):
+#   availability  99.5% of requests are not 5xx            -> error budget 0.5% over 30 days
+#   latency       95% of requests complete within 500 ms
+apiVersion: monitoring.coreos.com/v1
+kind: ServiceMonitor
+metadata:
+  name: baaki-web
+spec:
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: baaki-web
+  endpoints:
+    - port: http
+      path: /metrics
+      interval: 15s
+---
+apiVersion: monitoring.coreos.com/v1
+kind: PrometheusRule
+metadata:
+  name: baaki-slo
+spec:
+  groups:
+    # Recording rules: precompute the error ratio over each window the alerts need.
+    - name: baaki-sli
+      rules:
+        - record: baaki:http_error_ratio:rate5m
+          expr: sum(rate(baaki_http_requests_total{status=~"5.."}[5m])) / clamp_min(sum(rate(baaki_http_requests_total[5m])), 1e-9)
+        - record: baaki:http_error_ratio:rate30m
+          expr: sum(rate(baaki_http_requests_total{status=~"5.."}[30m])) / clamp_min(sum(rate(baaki_http_requests_total[30m])), 1e-9)
+        - record: baaki:http_error_ratio:rate1h
+          expr: sum(rate(baaki_http_requests_total{status=~"5.."}[1h])) / clamp_min(sum(rate(baaki_http_requests_total[1h])), 1e-9)
+        - record: baaki:http_error_ratio:rate2h
+          expr: sum(rate(baaki_http_requests_total{status=~"5.."}[2h])) / clamp_min(sum(rate(baaki_http_requests_total[2h])), 1e-9)
+        - record: baaki:http_error_ratio:rate6h
+          expr: sum(rate(baaki_http_requests_total{status=~"5.."}[6h])) / clamp_min(sum(rate(baaki_http_requests_total[6h])), 1e-9)
+        - record: baaki:http_error_ratio:rate1d
+          expr: sum(rate(baaki_http_requests_total{status=~"5.."}[1d])) / clamp_min(sum(rate(baaki_http_requests_total[1d])), 1e-9)
+        - record: baaki:http_latency_p95:5m
+          expr: histogram_quantile(0.95, sum by (le) (rate(baaki_http_request_duration_seconds_bucket[5m])))
+        - record: baaki:http_fast_ratio:rate5m
+          expr: sum(rate(baaki_http_request_duration_seconds_bucket{le="0.5"}[5m])) / clamp_min(sum(rate(baaki_http_request_duration_seconds_count[5m])), 1e-9)
+
+    # Multi-window burn-rate alerts (Google SRE workbook). Burn rate = error ratio / budget (0.005).
+    # The long window proves the burn is sustained; the short window makes the alert clear quickly
+    # once the problem is fixed.
+    - name: baaki-slo-alerts
+      rules:
+        - alert: BaakiErrorBudgetFastBurn
+          # 14.4x burn: 2% of the 30-day budget gone in 1 hour. Someone must act now.
+          expr: baaki:http_error_ratio:rate1h > (14.4 * 0.005) and baaki:http_error_ratio:rate5m > (14.4 * 0.005)
+          for: 2m
+          labels: {severity: page}
+          annotations:
+            summary: "baaki is failing {{ $value | humanizePercentage }} of requests (fast budget burn)"
+            runbook_url: https://github.com/7arj/baaki/blob/main/docs/runbooks.md#baakierrorbudgetfastburn
+        - alert: BaakiErrorBudgetSlowBurn
+          # 6x over 6h: 5% of the budget in 6 hours. Still a page, but a slower one.
+          expr: baaki:http_error_ratio:rate6h > (6 * 0.005) and baaki:http_error_ratio:rate30m > (6 * 0.005)
+          for: 15m
+          labels: {severity: page}
+          annotations:
+            summary: "baaki error ratio {{ $value | humanizePercentage }} sustained over 6h"
+            runbook_url: https://github.com/7arj/baaki/blob/main/docs/runbooks.md#baakierrorbudgetfastburn
+        - alert: BaakiErrorBudgetTicket
+          # 3x over a day: the budget will run out in ~10 days. Fix in working hours.
+          expr: baaki:http_error_ratio:rate1d > (3 * 0.005) and baaki:http_error_ratio:rate2h > (3 * 0.005)
+          for: 1h
+          labels: {severity: ticket}
+          annotations:
+            summary: "baaki is slowly eating its error budget ({{ $value | humanizePercentage }} over 1d)"
+            runbook_url: https://github.com/7arj/baaki/blob/main/docs/runbooks.md#baakierrorbudgetticket
+        - alert: BaakiLatencySLOBreach
+          expr: baaki:http_fast_ratio:rate5m < 0.95 and sum(rate(baaki_http_requests_total[5m])) > 0.1
+          for: 15m
+          labels: {severity: ticket}
+          annotations:
+            summary: "Only {{ $value | humanizePercentage }} of baaki requests finish within 500 ms (SLO 95%)"
+            runbook_url: https://github.com/7arj/baaki/blob/main/docs/runbooks.md#baakilatencyslobreach
+
+    # Symptom alerts for when there is no traffic to compute a ratio from.
+    - name: baaki-availability
+      rules:
+        - alert: BaakiNoReadyWebPods
+          expr: sum(kube_deployment_status_replicas_available{namespace="baaki",deployment="baaki-web"}) < 1
+          for: 2m
+          labels: {severity: page}
+          annotations:
+            summary: "No baaki web pod is Ready: the site is down"
+            runbook_url: https://github.com/7arj/baaki/blob/main/docs/runbooks.md#baakinoreadywebpods
+        - alert: BaakiPostgresDown
+          expr: sum(kube_statefulset_status_replicas_ready{namespace="baaki",statefulset="postgres"}) < 1
+          for: 2m
+          labels: {severity: page}
+          annotations:
+            summary: "postgres-0 is not Ready: every web pod will fail readiness"
+            runbook_url: https://github.com/7arj/baaki/blob/main/docs/runbooks.md#baakipostgresdown
+        - alert: BaakiWorkerJobFailed
+          expr: sum(kube_job_status_failed{namespace="baaki",job_name=~"baaki-worker-.*"}) > 0
+          for: 5m
+          labels: {severity: ticket}
+          annotations:
+            summary: "The daily recovery pass failed: reminders for today were not sent"
+            runbook_url: https://github.com/7arj/baaki/blob/main/docs/runbooks.md#baakiworkerjobfailed
