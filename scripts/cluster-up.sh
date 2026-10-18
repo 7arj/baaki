@@ -18,5 +18,13 @@ helm upgrade --install traefik traefik/traefik --version 41.7.1 \
 helm upgrade --install metrics-server metrics-server/metrics-server --version 3.14.0 \
   --namespace kube-system --set 'args={--kubelet-insecure-tls}' --wait
 
+# Argo CD (GitOps controller), pinned version, then the project + application that point it at this repo.
+kubectl get namespace argocd >/dev/null 2>&1 || kubectl create namespace argocd
+kubectl apply -n argocd --server-side --force-conflicts \
+  -f https://raw.githubusercontent.com/argoproj/argo-cd/v3.5.5/manifests/install.yaml >/dev/null
+kubectl -n argocd rollout status deploy/argocd-server --timeout=300s
+kubectl -n argocd rollout status deploy/argocd-repo-server --timeout=300s
+
 scripts/create-secrets.sh
-echo "platform ready"
+kubectl apply -f argocd/project.yaml -f argocd/application.yaml
+echo "platform ready; Argo CD is now syncing the app from git"

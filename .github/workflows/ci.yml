@@ -1,0 +1,132 @@
+# Source change -> checks -> image -> deployable manifest.
+#
+#   checks ─┬─> build (+ Trivy scan) ─> push to GHCR ─> bump k8s/overlays/local tag ─> Argo CD syncs
+#   secrets ┘        (push events only; PRs stop after the scan)
+#
+# The cluster is a local kind cluster that GitHub can't reach, so CI never runs kubectl. It
+# records the new desired state in git and Argo CD, running inside the cluster, pulls it.
+name: ci
+
+on:
+  push:
+    branches: [main, devops-improvements]
+  pull_request:
+    branches: [main]
+  workflow_dispatch:
+
+# Least privilege by default; jobs that need more ask for it explicitly.
+# Third-party actions are pinned to full commit SHAs, not tags: a tag can be moved to malicious
+# code (supply-chain attack), a commit SHA cannot.
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  IMAGE: ghcr.io/7arj/baaki
+
+jobs:
+  checks:
+    name: lint, SAST, dependency audit, tests
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: astral-sh/setup-uv@1c37ad07a6a961277cf70c0d37d6f313000f5884 # v10.3.0
+        with:
+          version: "0.11.26"
+      - run: uv sync --frozen --group dev
+      - name: ruff (bugs, not style)
+        run: uv run ruff check baaki tests
+      - name: bandit (SAST, medium+ severity)
+        run: uv run bandit -q -r baaki -ll
+      - name: pip-audit (known CVEs in dependencies)
+        run: uv run pip-audit
+      - name: pytest
+        run: uv run pytest -q
+
+  secrets:
+    name: secret scan (full history)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          fetch-depth: 0
+      - name: gitleaks
+        run: |
+          docker run --rm -v "$PWD:/repo" ghcr.io/gitleaks/gitleaks:v8.30.1 git --no-banner --redact /repo
+
+  image:
+    name: build, smoke test, scan, push
+    needs: [checks, secrets]
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: write   # push to GHCR with the run's own short-lived GITHUB_TOKEN, no stored secret
+    outputs:
+      tag: ${{ github.sha }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: docker/setup-buildx-action@f87e5991a6d7451dcb8d9637bfbc97413f497069 # v4.4.1
+      - name: build
+        uses: docker/build-push-action@c3c9e263c25d99ce0380d002d59b67737d91b0dc # v7.4.0
+        with:
+          context: .
+          load: true
+          tags: ${{ env.IMAGE }}:${{ github.sha }}
+          build-args: GIT_SHA=${{ github.sha }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+      # Integration test of the real image against real Postgres: migrate, start, then walk the
+      # demo user journey (sign in, open the ledger) and check the running version is this commit.
+      - name: smoke test (image + Postgres)
+        run: |
+          docker network create smoke
+          docker run -d --name db --network smoke -e POSTGRES_DB=baaki -e POSTGRES_USER=baaki \
+            -e POSTGRES_PASSWORD=ci-only postgres:17-alpine
+          for i in $(seq 30); do docker exec db pg_isready -U baaki -d baaki && break; sleep 1; done
+          ENV="-e DATABASE_URL=postgresql+psycopg://baaki:ci-only@db:5432/baaki -e BAAKI_SECRET_KEY=ci-only"
+          docker run --rm --network smoke $ENV "$IMAGE:$GITHUB_SHA" python -m baaki migrate
+          docker run --rm --network smoke $ENV "$IMAGE:$GITHUB_SHA" python -m baaki demo >/dev/null
+          docker run -d --name web --network smoke -p 8080:8080 $ENV -e BAAKI_MIGRATE_ON_START=false "$IMAGE:$GITHUB_SHA"
+          for i in $(seq 30); do curl -sf localhost:8080/readyz && break; sleep 1; done
+          test "$(curl -s localhost:8080/version)" = "{\"version\":\"$GITHUB_SHA\"}"
+          scripts/smoke-journey.sh http://localhost:8080
+      - name: smoke test logs
+        if: failure()
+        run: docker logs web || true
+
+      - name: Trivy image scan (fail on fixable HIGH/CRITICAL)
+        uses: aquasecurity/trivy-action@ed142fd0673e97e23eac54620cfb913e5ce36c25 # v0.36.0
+        with:
+          image-ref: ${{ env.IMAGE }}:${{ github.sha }}
+          severity: HIGH,CRITICAL
+          ignore-unfixed: true
+          exit-code: "1"
+
+      - name: push
+        if: github.event_name != 'pull_request'
+        run: |
+          echo "${{ secrets.GITHUB_TOKEN }}" | docker login ghcr.io -u "${{ github.actor }}" --password-stdin
+          docker push "$IMAGE:$GITHUB_SHA"
+
+  deploy:
+    name: promote to local overlay (GitOps)
+    needs: image
+    if: github.event_name != 'pull_request'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write   # commit the new image tag back to this branch
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - name: set image tag to this commit
+        run: |
+          cd k8s/overlays/local
+          sed -i "s/^\(\s*newTag:\).*/\1 ${GITHUB_SHA}/" kustomization.yaml
+          git diff --quiet && { echo "already at ${GITHUB_SHA}"; exit 0; }
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git commit -am "deploy: baaki ${GITHUB_SHA::7} to local [skip ci]"
+          git push
