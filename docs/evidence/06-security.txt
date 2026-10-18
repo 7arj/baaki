@@ -1,0 +1,31 @@
+# Security controls, verified on the running cluster, 2026-10-18T06:29:26Z
+## RBAC: read-only developer identity
+  can-i get pods: yes
+  can-i get pods/log: yes
+  can-i list deployments: yes
+  can-i get secrets: no
+  can-i delete pods: no
+  can-i create pods/exec: no
+  can-i patch deployments: no
+## App service account has no API token mounted
+  ls: cannot access '/var/run/secrets/kubernetes.io/serviceaccount': No such file or directory
+## NetworkPolicy enforcement
+  other namespace -> postgres:5432  BLOCKED
+  other namespace -> baaki-web:80   BLOCKED
+  web -> postgres:5432  OPEN
+  web -> internet :443  OPEN
+  web -> internet :80   BLOCKED
+## Pod security
+  namespace PSA: restricted
+  web container user: 10001
+  write to root fs: touch: cannot touch '/app/x': Read-only file system
+  privileged pod in baaki namespace:
+    Error from server (Forbidden): pods "privtest" is forbidden: violates PodSecurity "restricted:latest": privileged (container "p" must not set securityContex
+## TLS
+  SSL connection using TLSv1.3 / AEAD-CHACHA20-POLY1305-SHA256 / [blank] / UNDEF
+  subject: CN=baaki.localhost
+  http redirect: 301 -> https://baaki.localhost/
+  session cookie flags: set-cookie: baaki_csrf=<redacted>; Path=/; SameSite=lax; Secure
+## Secrets are not in git
+  $ git ls-files | grep -iE 'secret|\.env$|\.pem|\.key$'  ->  scripts/create-secrets.sh 
+  in-cluster secrets: baaki-secrets baaki-tls 

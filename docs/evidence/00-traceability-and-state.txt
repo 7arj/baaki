@@ -1,0 +1,44 @@
+# Traceability: commit -> CI run -> image -> deploy commit -> running pods, 2026-10-18T06:30:01Z
+live /version:              7491adf8d0a7362c22db19a79f8994e3dcaaa9e9
+source commit:              7491adf Traefik: publish 127.0.0.1 as Ingress status, replace in place on upgrade
+CI run for that commit:     success https://github.com/7arj/baaki/actions/runs/39102564442
+deploy/local head:          ca2a7d5 deploy: baaki 7491adf (devops-improvements, run 39102564442)
+Argo CD synced revision:    ca2a7d5  (Synced/Healthy)
+image in running pods:      ghcr.io/7arj/baaki:7491adf8d0a7362c22db19a79f8994e3dcaaa9e9
+GIT_SHA env in a pod:       7491adf8d0a7362c22db19a79f8994e3dcaaa9e9
+image OCI revision label:   7491adf8d0a7362c22db19a79f8994e3dcaaa9e9
+
+$ kubectl -n baaki get deploy,sts,cronjob,job,svc,ingress,hpa,pdb,pvc
+NAME                        READY   UP-TO-DATE   AVAILABLE   AGE
+deployment.apps/baaki-web   5/5     5            5           59m
+
+NAME                        READY   AGE
+statefulset.apps/postgres   1/1     59m
+
+NAME                         SCHEDULE     TIMEZONE   SUSPEND   ACTIVE   LAST SCHEDULE   AGE
+cronjob.batch/baaki-worker   30 4 * * *   Etc/UTC    False     0        <none>          59m
+
+NAME                      STATUS     COMPLETIONS   DURATION   AGE
+job.batch/baaki-migrate   Complete   1/1           4s         78s
+
+NAME                TYPE        CLUSTER-IP     EXTERNAL-IP   PORT(S)    AGE
+service/baaki-web   ClusterIP   10.96.196.61   <none>        80/TCP     22m
+service/postgres    ClusterIP   None           <none>        5432/TCP   59m
+
+NAME                              CLASS     HOSTS             ADDRESS     PORTS     AGE
+ingress.networking.k8s.io/baaki   traefik   baaki.localhost   127.0.0.1   80, 443   59m
+
+NAME                                            REFERENCE              TARGETS        MINPODS   MAXPODS   REPLICAS   AGE
+horizontalpodautoscaler.autoscaling/baaki-web   Deployment/baaki-web   cpu: 11%/70%   2         5         5          59m
+
+NAME                                   MIN AVAILABLE   MAX UNAVAILABLE   ALLOWED DISRUPTIONS   AGE
+poddisruptionbudget.policy/baaki-web   1               N/A               4                     59m
+
+NAME                                    STATUS   VOLUME                                     CAPACITY   ACCESS MODES   STORAGECLASS   VOLUMEATTRIBUTESCLASS   AGE
+persistentvolumeclaim/data-postgres-0   Bound    pvc-dffa27a9-0786-44de-aba3-c590b03d71fc   1Gi        RWO            standard       <unset>                 59m
+
+$ kubectl get nodes -L topology.kubernetes.io/zone
+NAME                  STATUS   ROLES           AGE   VERSION   ZONE
+baaki-control-plane   Ready    control-plane   62m   v1.37.0   
+baaki-worker          Ready    <none>          62m   v1.37.0   zone-a
+baaki-worker2         Ready    <none>          62m   v1.37.0   zone-b

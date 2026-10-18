@@ -24,20 +24,21 @@ metadata:
 spec:
   groups:
     # Recording rules: precompute the error ratio over each window the alerts need.
+    # "or vector(0)": with no 5xx series at all the numerator would be empty, not 0.
     - name: baaki-sli
       rules:
         - record: baaki:http_error_ratio:rate5m
-          expr: sum(rate(baaki_http_requests_total{status=~"5.."}[5m])) / clamp_min(sum(rate(baaki_http_requests_total[5m])), 1e-9)
+          expr: (sum(rate(baaki_http_requests_total{status=~"5.."}[5m])) or vector(0)) / clamp_min(sum(rate(baaki_http_requests_total[5m])), 1e-9)
         - record: baaki:http_error_ratio:rate30m
-          expr: sum(rate(baaki_http_requests_total{status=~"5.."}[30m])) / clamp_min(sum(rate(baaki_http_requests_total[30m])), 1e-9)
+          expr: (sum(rate(baaki_http_requests_total{status=~"5.."}[30m])) or vector(0)) / clamp_min(sum(rate(baaki_http_requests_total[30m])), 1e-9)
         - record: baaki:http_error_ratio:rate1h
-          expr: sum(rate(baaki_http_requests_total{status=~"5.."}[1h])) / clamp_min(sum(rate(baaki_http_requests_total[1h])), 1e-9)
+          expr: (sum(rate(baaki_http_requests_total{status=~"5.."}[1h])) or vector(0)) / clamp_min(sum(rate(baaki_http_requests_total[1h])), 1e-9)
         - record: baaki:http_error_ratio:rate2h
-          expr: sum(rate(baaki_http_requests_total{status=~"5.."}[2h])) / clamp_min(sum(rate(baaki_http_requests_total[2h])), 1e-9)
+          expr: (sum(rate(baaki_http_requests_total{status=~"5.."}[2h])) or vector(0)) / clamp_min(sum(rate(baaki_http_requests_total[2h])), 1e-9)
         - record: baaki:http_error_ratio:rate6h
-          expr: sum(rate(baaki_http_requests_total{status=~"5.."}[6h])) / clamp_min(sum(rate(baaki_http_requests_total[6h])), 1e-9)
+          expr: (sum(rate(baaki_http_requests_total{status=~"5.."}[6h])) or vector(0)) / clamp_min(sum(rate(baaki_http_requests_total[6h])), 1e-9)
         - record: baaki:http_error_ratio:rate1d
-          expr: sum(rate(baaki_http_requests_total{status=~"5.."}[1d])) / clamp_min(sum(rate(baaki_http_requests_total[1d])), 1e-9)
+          expr: (sum(rate(baaki_http_requests_total{status=~"5.."}[1d])) or vector(0)) / clamp_min(sum(rate(baaki_http_requests_total[1d])), 1e-9)
         - record: baaki:http_latency_p95:5m
           expr: histogram_quantile(0.95, sum by (le) (rate(baaki_http_request_duration_seconds_bucket[5m])))
         - record: baaki:http_fast_ratio:rate5m

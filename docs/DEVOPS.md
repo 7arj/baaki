@@ -3,6 +3,10 @@
 How baaki is built, delivered and run on Kubernetes. This is the Advanced DevOps project work. The
 baseline before any of it is commit `3c2eadf8734fc3c254748945e8342500732e7647`.
 
+Also see: [DECISIONS.md](DECISIONS.md) (why each choice, and the alternatives),
+[evidence/](evidence/README.md) (captured runs), [runbooks.md](runbooks.md),
+[postmortem](postmortem-2026-10-18-db-outage.md).
+
 ## Architecture
 
 ```
@@ -181,3 +185,7 @@ reliability fixes are released.
 - Argo CD polls git; there's no webhook, because GitHub can't reach the laptop.
 - Outbound email/WhatsApp/Razorpay need real credentials and aren't exercised here; the app falls back
   to its console transport and simulator.
+- Availability is measured inside the app, so a total outage (503 from the ingress) doesn't burn the
+  error budget; symptom alerts cover that case (see the postmortem).
+- No distributed tracing (single service); no canary analysis or manual approval gate (see DECISIONS.md).
+- Web CPU requests are deliberately small; the load test saturated 5 pods at ~950 req/s.

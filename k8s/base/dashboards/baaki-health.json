@@ -61,7 +61,7 @@
       "type": "prometheus",
       "uid": "prometheus"
      },
-     "expr": "1 - (sum(increase(baaki_http_requests_total{status=~\"5..\"}[$__range])) / clamp_min(sum(increase(baaki_http_requests_total[$__range])),1))",
+     "expr": "1 - ((sum(increase(baaki_http_requests_total{status=~\"5..\"}[$__range])) or vector(0)) / clamp_min(sum(increase(baaki_http_requests_total[$__range])),1))",
      "legendFormat": "availability",
      "refId": "A"
     }
@@ -104,7 +104,7 @@
       "type": "prometheus",
       "uid": "prometheus"
      },
-     "expr": "1 - (sum(increase(baaki_http_requests_total{status=~\"5..\"}[$__range])) / clamp_min(sum(increase(baaki_http_requests_total[$__range])),1)) / 0.005",
+     "expr": "1 - ((sum(increase(baaki_http_requests_total{status=~\"5..\"}[$__range])) or vector(0)) / clamp_min(sum(increase(baaki_http_requests_total[$__range])),1)) / 0.005",
      "legendFormat": "budget left",
      "refId": "A"
     }
@@ -297,7 +297,7 @@
       "type": "prometheus",
       "uid": "prometheus"
      },
-     "expr": "sum(rate(baaki_http_requests_total{status=~\"4..\"}[5m])) / clamp_min(sum(rate(baaki_http_requests_total[5m])),1e-9)",
+     "expr": "(sum(rate(baaki_http_requests_total{status=~\"4..\"}[5m])) or vector(0)) / clamp_min(sum(rate(baaki_http_requests_total[5m])),1e-9)",
      "legendFormat": "4xx ratio",
      "refId": "B"
     }
