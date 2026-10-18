@@ -1,6 +1,6 @@
 # Postmortem: database outage game day (blameless)
 
-**Date:** 18 Oct 2026 · **Duration:** 3 min 10 s of user impact (06:12:48 → 06:15:58 UTC) ·
+**Date:** 18 Oct 2026 · **Duration:** 3 min 20 s of user impact (06:47:36 → 06:50:56 UTC) ·
 **Type:** planned fault injection · **Evidence:** [02-gameday-db-outage.txt](evidence/02-gameday-db-outage.txt)
 
 ## Summary
@@ -13,14 +13,15 @@ fired. Service recovered within 5 s of Postgres returning, with no data loss.
 
 | Time | Event |
 |------|-------|
-| 06:12:32 | Steady state: postgres 1/1, web 2/2, `GET /login` 200, no alerts |
-| 06:12:48 | Postgres stopped. Within one readiness period both web pods fail `/readyz` and leave the Service endpoints; Traefik returns 503. `BaakiPostgresDown` → pending |
-| 06:12:58 | `BaakiNoReadyWebPods` → pending |
-| 06:14:46 | `BaakiPostgresDown` → **firing** (after its `for: 2m`) |
-| 06:15:01 | `BaakiNoReadyWebPods` → **firing** |
-| 06:15:53 | Mitigation: Argo CD self-heal re-enabled; it restores `replicas: 1` from git |
-| 06:15:58 | postgres 1/1, web 2/2, `GET /login` 200. Users served again |
-| 06:16:0x | Smoke journey: sign-in works and all 14 invoices are present (PVC kept the data) |
+| 06:47:25 | Steady state: postgres 1/1, web 2/2, `GET /login` 200, no alerts. Running `b77f874` |
+| 06:47:31 | Postgres stopped |
+| 06:47:36 | Both web pods fail `/readyz` and leave the Service endpoints; Traefik returns 503 |
+| 06:47:46 | `BaakiPostgresDown` and `BaakiNoReadyWebPods` → pending |
+| 06:49:44 | Both alerts → **firing** (after their `for: 2m`) |
+| 06:50:46 | Mitigation: Argo CD self-heal re-enabled; it restores `replicas: 1` from git |
+| 06:50:51 | postgres-0 Ready |
+| 06:50:56 | web 2/2 Ready, `GET /login` 200. Users served again (5 s after the DB) |
+| 06:51:0x | Smoke journey: sign-in works and all 14 invoices are present (PVC kept the data) |
 
 ## What went well
 

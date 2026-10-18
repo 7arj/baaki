@@ -1,22 +1,23 @@
-# Observability: metrics, logs, alerts, 2026-10-18T06:30:31Z
+# Observability: metrics, logs, alerts, 2026-10-18T06:53:45Z
+# running version: {"version":"b77f87445a86798010f73d72274071eead3824bf"}
 ## Prometheus targets for baaki
-    http://10.244.1.28:8080/metrics up
-    http://10.244.1.26:8080/metrics up
-    http://10.244.2.31:8080/metrics up
-    http://10.244.2.30:8080/metrics up
-    http://10.244.1.27:8080/metrics up
-## RED over the last 15 minutes (includes the load test)
-  requests/s by route:  sum by (route) (rate(baaki_http_requests_total[15m]))
-    {'route': '/version'} 0.0022
-    {'route': '/login'} 438.5003
+    http://10.244.2.45:8080/metrics up
+    http://10.244.2.44:8080/metrics up
+## RED
+  requests/s by route (1h, includes the earlier load test):  sum by (route) (rate(baaki_http_requests_total[1h]))
+    {'route': '/version'} 0.016
+    {'route': '/login'} 109.5349
     {'route': '/app/invoices'} 0.0
-  5xx ratio:            baaki:http_error_ratio:rate5m
-    (empty here: no 5xx series existed. Fixed in 967da1a with 'or vector(0)'; re-checked after deploy: 0)
-  p50/p95/p99 latency (s), 15m:
-    p50    0.0082
-    p95    0.0848
-    p99    0.17
-  share under 500 ms:   baaki:http_fast_ratio:rate5m
+  5xx ratio (5m):  baaki:http_error_ratio:rate5m
+     0.0
+  latency percentiles over 1h (seconds):
+   p50:
+     0.0082
+   p95:
+     0.0848
+   p99:
+     0.17
+  share of requests under 500 ms (1h):
      1.0
 ## Alert rules loaded
     BaakiNoReadyWebPods page inactive
@@ -27,7 +28,8 @@
     BaakiErrorBudgetTicket ticket inactive
     BaakiLatencySLOBreach ticket inactive
 ## Structured access log (one JSON line per request)
-{"ts": "2026-10-18T06:29:09+0000", "level": "INFO", "logger": "baaki.access", "msg": "request", "request_id": "9d7f5b99ce3549b4a580fbc14fc719fd", "method": "GET", "route": "/version", "path": "/version", "status": 200, "duration_ms": 0.7, "version": "7491adf8d0a7362c22db19a79f8994e3dcaaa9e9"}
+{"ts": "2026-10-18T06:53:46+0000", "level": "INFO", "logger": "baaki.access", "msg": "request", "request_id": "c49788b06f0b4ff2ae41cb0c520a97ac", "method": "GET", "route": "/app/invoices", "path": "/app/invoices", "status": 200, "duration_ms": 10.6, "version": "b77f87445a86798010f73d72274071eead3824bf"}
 ## Request id round trip
-  sent X-Request-ID: evidence-1792305031 -> echoed: x-request-id: evidence-1792305031
-  found in pod logs: 1 line(s)
+  sent X-Request-ID: evidence-1792306426 -> echoed: x-request-id: evidence-1792306426
+  matching log line:
+    {"ts": "2026-10-18T06:53:46+0000", "level": "INFO", "logger": "baaki.access", "msg": "request", "request_id": "evidence-1792306426", "method": "GET", "route": "/login", "path": "/login", "status": 200, "duration_ms": 13.8, "version": "b77f87445a86798010f73d72274071eead3824bf"}

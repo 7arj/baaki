@@ -1,51 +1,52 @@
-# Game day: Postgres outage for 200s, 2026-10-18T06:12:32Z
-# running version: {"version":"7491adf8d0a7362c22db19a79f8994e3dcaaa9e9"}
-06:12:32  postgres_ready=1  web_ready=2  GET /login=200  alerts=-
+# Game day: Postgres outage for 200s, 2026-10-18T06:47:25Z
+# running version: {"version":"b77f87445a86798010f73d72274071eead3824bf"}
+06:47:25  postgres_ready=1  web_ready=2  GET /login=200  alerts=-
 ## pause Argo CD self-heal (it would restore Postgres within seconds), then stop Postgres
 statefulset.apps/postgres scaled
-06:12:32  postgres_ready=1  web_ready=2  GET /login=200  alerts=-
-06:12:37  postgres_ready=0  web_ready=2  GET /login=200  alerts=-
-06:12:42  postgres_ready=0  web_ready=0  GET /login=503  alerts=-
-06:12:48  postgres_ready=0  web_ready=0  GET /login=503  alerts=BaakiPostgresDown=pending
-06:12:53  postgres_ready=0  web_ready=0  GET /login=503  alerts=BaakiPostgresDown=pending
-06:12:58  postgres_ready=0  web_ready=0  GET /login=503  alerts=BaakiNoReadyWebPods=pending,BaakiPostgresDown=pending
-06:13:03  postgres_ready=0  web_ready=0  GET /login=503  alerts=BaakiNoReadyWebPods=pending,BaakiPostgresDown=pending
-06:13:08  postgres_ready=0  web_ready=0  GET /login=503  alerts=BaakiNoReadyWebPods=pending,BaakiPostgresDown=pending
-06:13:13  postgres_ready=0  web_ready=0  GET /login=503  alerts=BaakiNoReadyWebPods=pending,BaakiPostgresDown=pending
-06:13:19  postgres_ready=0  web_ready=0  GET /login=503  alerts=BaakiNoReadyWebPods=pending,BaakiPostgresDown=pending
-06:13:24  postgres_ready=0  web_ready=0  GET /login=503  alerts=BaakiNoReadyWebPods=pending,BaakiPostgresDown=pending
-06:13:29  postgres_ready=0  web_ready=0  GET /login=503  alerts=BaakiNoReadyWebPods=pending,BaakiPostgresDown=pending
-06:13:34  postgres_ready=0  web_ready=0  GET /login=503  alerts=BaakiNoReadyWebPods=pending,BaakiPostgresDown=pending
-06:13:39  postgres_ready=0  web_ready=0  GET /login=503  alerts=BaakiNoReadyWebPods=pending,BaakiPostgresDown=pending
-06:13:44  postgres_ready=0  web_ready=0  GET /login=503  alerts=BaakiNoReadyWebPods=pending,BaakiPostgresDown=pending
-06:13:49  postgres_ready=0  web_ready=0  GET /login=503  alerts=BaakiNoReadyWebPods=pending,BaakiPostgresDown=pending
-06:13:54  postgres_ready=0  web_ready=0  GET /login=503  alerts=BaakiNoReadyWebPods=pending,BaakiPostgresDown=pending
-06:14:00  postgres_ready=0  web_ready=0  GET /login=503  alerts=BaakiNoReadyWebPods=pending,BaakiPostgresDown=pending
-06:14:05  postgres_ready=0  web_ready=0  GET /login=503  alerts=BaakiNoReadyWebPods=pending,BaakiPostgresDown=pending
-06:14:10  postgres_ready=0  web_ready=0  GET /login=503  alerts=BaakiNoReadyWebPods=pending,BaakiPostgresDown=pending
-06:14:15  postgres_ready=0  web_ready=0  GET /login=503  alerts=BaakiNoReadyWebPods=pending,BaakiPostgresDown=pending
-06:14:20  postgres_ready=0  web_ready=0  GET /login=503  alerts=BaakiNoReadyWebPods=pending,BaakiPostgresDown=pending
-06:14:25  postgres_ready=0  web_ready=0  GET /login=503  alerts=BaakiNoReadyWebPods=pending,BaakiPostgresDown=pending
-06:14:30  postgres_ready=0  web_ready=0  GET /login=503  alerts=BaakiNoReadyWebPods=pending,BaakiPostgresDown=pending
-06:14:36  postgres_ready=0  web_ready=0  GET /login=503  alerts=BaakiNoReadyWebPods=pending,BaakiPostgresDown=pending
-06:14:41  postgres_ready=0  web_ready=0  GET /login=503  alerts=BaakiNoReadyWebPods=pending,BaakiPostgresDown=pending
-06:14:46  postgres_ready=0  web_ready=0  GET /login=503  alerts=BaakiNoReadyWebPods=pending,BaakiPostgresDown=firing
-06:14:51  postgres_ready=0  web_ready=0  GET /login=503  alerts=BaakiNoReadyWebPods=pending,BaakiPostgresDown=firing
-06:14:56  postgres_ready=0  web_ready=0  GET /login=503  alerts=BaakiNoReadyWebPods=pending,BaakiPostgresDown=firing
-06:15:01  postgres_ready=0  web_ready=0  GET /login=503  alerts=BaakiNoReadyWebPods=firing,BaakiPostgresDown=firing
-06:15:06  postgres_ready=0  web_ready=0  GET /login=503  alerts=BaakiNoReadyWebPods=firing,BaakiPostgresDown=firing
-06:15:11  postgres_ready=0  web_ready=0  GET /login=503  alerts=BaakiNoReadyWebPods=firing,BaakiPostgresDown=firing
-06:15:17  postgres_ready=0  web_ready=0  GET /login=503  alerts=BaakiNoReadyWebPods=firing,BaakiPostgresDown=firing
-06:15:22  postgres_ready=0  web_ready=0  GET /login=503  alerts=BaakiNoReadyWebPods=firing,BaakiPostgresDown=firing
-06:15:27  postgres_ready=0  web_ready=0  GET /login=503  alerts=BaakiNoReadyWebPods=firing,BaakiPostgresDown=firing
-06:15:32  postgres_ready=0  web_ready=0  GET /login=503  alerts=BaakiNoReadyWebPods=firing,BaakiPostgresDown=firing
-06:15:37  postgres_ready=0  web_ready=0  GET /login=503  alerts=BaakiNoReadyWebPods=firing,BaakiPostgresDown=firing
-06:15:42  postgres_ready=0  web_ready=0  GET /login=503  alerts=BaakiNoReadyWebPods=firing,BaakiPostgresDown=firing
-06:15:47  postgres_ready=0  web_ready=0  GET /login=503  alerts=BaakiNoReadyWebPods=firing,BaakiPostgresDown=firing
+06:47:25  postgres_ready=1  web_ready=2  GET /login=200  alerts=-
+06:47:31  postgres_ready=0  web_ready=2  GET /login=200  alerts=-
+06:47:36  postgres_ready=0  web_ready=0  GET /login=503  alerts=-
+06:47:41  postgres_ready=0  web_ready=0  GET /login=503  alerts=-
+06:47:46  postgres_ready=0  web_ready=0  GET /login=503  alerts=BaakiNoReadyWebPods=pending,BaakiPostgresDown=pending
+06:47:51  postgres_ready=0  web_ready=0  GET /login=503  alerts=BaakiNoReadyWebPods=pending,BaakiPostgresDown=pending
+06:47:56  postgres_ready=0  web_ready=0  GET /login=503  alerts=BaakiNoReadyWebPods=pending,BaakiPostgresDown=pending
+06:48:02  postgres_ready=0  web_ready=0  GET /login=503  alerts=BaakiNoReadyWebPods=pending,BaakiPostgresDown=pending
+06:48:07  postgres_ready=0  web_ready=0  GET /login=503  alerts=BaakiNoReadyWebPods=pending,BaakiPostgresDown=pending
+06:48:12  postgres_ready=0  web_ready=0  GET /login=503  alerts=BaakiNoReadyWebPods=pending,BaakiPostgresDown=pending
+06:48:17  postgres_ready=0  web_ready=0  GET /login=503  alerts=BaakiNoReadyWebPods=pending,BaakiPostgresDown=pending
+06:48:22  postgres_ready=0  web_ready=0  GET /login=503  alerts=BaakiNoReadyWebPods=pending,BaakiPostgresDown=pending
+06:48:27  postgres_ready=0  web_ready=0  GET /login=503  alerts=BaakiNoReadyWebPods=pending,BaakiPostgresDown=pending
+06:48:32  postgres_ready=0  web_ready=0  GET /login=503  alerts=BaakiNoReadyWebPods=pending,BaakiPostgresDown=pending
+06:48:38  postgres_ready=0  web_ready=0  GET /login=503  alerts=BaakiNoReadyWebPods=pending,BaakiPostgresDown=pending
+06:48:43  postgres_ready=0  web_ready=0  GET /login=503  alerts=BaakiNoReadyWebPods=pending,BaakiPostgresDown=pending
+06:48:48  postgres_ready=0  web_ready=0  GET /login=503  alerts=BaakiNoReadyWebPods=pending,BaakiPostgresDown=pending
+06:48:53  postgres_ready=0  web_ready=0  GET /login=503  alerts=BaakiNoReadyWebPods=pending,BaakiPostgresDown=pending
+06:48:58  postgres_ready=0  web_ready=0  GET /login=503  alerts=BaakiNoReadyWebPods=pending,BaakiPostgresDown=pending
+06:49:03  postgres_ready=0  web_ready=0  GET /login=503  alerts=BaakiNoReadyWebPods=pending,BaakiPostgresDown=pending
+06:49:08  postgres_ready=0  web_ready=0  GET /login=503  alerts=BaakiNoReadyWebPods=pending,BaakiPostgresDown=pending
+06:49:14  postgres_ready=0  web_ready=0  GET /login=503  alerts=BaakiNoReadyWebPods=pending,BaakiPostgresDown=pending
+06:49:19  postgres_ready=0  web_ready=0  GET /login=503  alerts=BaakiNoReadyWebPods=pending,BaakiPostgresDown=pending
+06:49:24  postgres_ready=0  web_ready=0  GET /login=503  alerts=BaakiNoReadyWebPods=pending,BaakiPostgresDown=pending
+06:49:29  postgres_ready=0  web_ready=0  GET /login=503  alerts=BaakiNoReadyWebPods=pending,BaakiPostgresDown=pending
+06:49:34  postgres_ready=0  web_ready=0  GET /login=503  alerts=BaakiNoReadyWebPods=pending,BaakiPostgresDown=pending
+06:49:39  postgres_ready=0  web_ready=0  GET /login=503  alerts=BaakiNoReadyWebPods=pending,BaakiPostgresDown=pending
+06:49:44  postgres_ready=0  web_ready=0  GET /login=503  alerts=BaakiNoReadyWebPods=firing,BaakiPostgresDown=firing
+06:49:50  postgres_ready=0  web_ready=0  GET /login=503  alerts=BaakiNoReadyWebPods=firing,BaakiPostgresDown=firing
+06:49:55  postgres_ready=0  web_ready=0  GET /login=503  alerts=BaakiNoReadyWebPods=firing,BaakiPostgresDown=firing
+06:50:00  postgres_ready=0  web_ready=0  GET /login=503  alerts=BaakiNoReadyWebPods=firing,BaakiPostgresDown=firing
+06:50:05  postgres_ready=0  web_ready=0  GET /login=503  alerts=BaakiNoReadyWebPods=firing,BaakiPostgresDown=firing
+06:50:10  postgres_ready=0  web_ready=0  GET /login=503  alerts=BaakiNoReadyWebPods=firing,BaakiPostgresDown=firing
+06:50:15  postgres_ready=0  web_ready=0  GET /login=503  alerts=BaakiNoReadyWebPods=firing,BaakiPostgresDown=firing
+06:50:20  postgres_ready=0  web_ready=0  GET /login=503  alerts=BaakiNoReadyWebPods=firing,BaakiPostgresDown=firing
+06:50:26  postgres_ready=0  web_ready=0  GET /login=503  alerts=BaakiNoReadyWebPods=firing,BaakiPostgresDown=firing
+06:50:31  postgres_ready=0  web_ready=0  GET /login=503  alerts=BaakiNoReadyWebPods=firing,BaakiPostgresDown=firing
+06:50:36  postgres_ready=0  web_ready=0  GET /login=503  alerts=BaakiNoReadyWebPods=firing,BaakiPostgresDown=firing
+06:50:41  postgres_ready=0  web_ready=0  GET /login=503  alerts=BaakiNoReadyWebPods=firing,BaakiPostgresDown=firing
 ## recovery: re-enable self-heal; Argo CD restores replicas=1 from git
-06:15:53  postgres_ready=0  web_ready=0  GET /login=503  alerts=BaakiNoReadyWebPods=firing,BaakiPostgresDown=firing
-06:15:58  postgres_ready=1  web_ready=2  GET /login=200  alerts=BaakiNoReadyWebPods=firing,BaakiPostgresDown=firing
-06:16:03  postgres_ready=1  web_ready=2  GET /login=200  alerts=BaakiNoReadyWebPods=firing,BaakiPostgresDown=firing
+06:50:46  postgres_ready=0  web_ready=0  GET /login=503  alerts=BaakiNoReadyWebPods=firing,BaakiPostgresDown=firing
+06:50:51  postgres_ready=1  web_ready=0  GET /login=503  alerts=BaakiNoReadyWebPods=firing,BaakiPostgresDown=firing
+06:50:56  postgres_ready=1  web_ready=2  GET /login=200  alerts=BaakiNoReadyWebPods=firing,BaakiPostgresDown=firing
+06:51:02  postgres_ready=1  web_ready=2  GET /login=200  alerts=BaakiNoReadyWebPods=firing
 ## data after recovery
 sign in: 303 https://baaki.localhost/app
 invoice ledger: 14 invoices visible

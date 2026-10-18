@@ -10,4 +10,4 @@ resources:
 images:
   - name: baaki
     newName: ghcr.io/7arj/baaki
-    newTag: 8525044e0ccb8a565648dbac8cca5136be6207b8
+    newTag: b77f87445a86798010f73d72274071eead3824bf

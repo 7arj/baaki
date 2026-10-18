@@ -1,14 +1,13 @@
-# Rollback by re-running an earlier deploy job (no rebuild), 2026-10-18T06:27:32Z
-06:27:32  live: {"version":"7491adf8d0a7362c22db19a79f8994e3dcaaa9e9"}
-$ gh run rerun 39101758431 --job 117599671755    # run that built and scanned 69e67d9
-deploy/local is now: f3c156b deploy: baaki 69e67d9 (devops-improvements, run 39101758431)
-06:28:24  live: {"version":"69e67d9c676afb3429f51b0b819e06e2199b7e2e"}
-$ kubectl -n argocd get app baaki -o jsonpath='{.status.history[-1]}'
-f3c156b2cd004dc9a3e23b0e5fc8b68e3cb9d6ec deployedAt=2026-10-18T06:28:15Z
+# Rollback by re-running an earlier deploy job (no rebuild), 2026-10-18T06:51:28Z
+06:51:28  live: {"version":"b77f87445a86798010f73d72274071eead3824bf"}
+$ gh run rerun 39104938931 --job 117608997777    # run that built and scanned e4d4890
+deploy/local is now: 4c3ec55 deploy: baaki e4d4890 (devops-improvements, run 39104938931)
+06:52:21  live: {"version":"e4d4890707cdc931fb94bc22439b47535da48012"}
+Argo CD last deploy: 4c3ec55 at 2026-10-18T06:52:06Z
 
-## roll forward again: re-run the deploy job of the 7491adf run
-$ gh run rerun 39102564442 --job 117601970195
-06:29:09  live: {"version":"7491adf8d0a7362c22db19a79f8994e3dcaaa9e9"}
+## roll forward again: re-run the deploy job of the b77f874 run
+$ gh run rerun 39105090877 --job 117609476862
+06:53:29  live: {"version":"b77f87445a86798010f73d72274071eead3824bf"}
 sign in: 303 https://baaki.localhost/app
 invoice ledger: 14 invoices visible
 PASS
